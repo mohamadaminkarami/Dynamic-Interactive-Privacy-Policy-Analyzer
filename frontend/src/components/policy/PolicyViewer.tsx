@@ -12,7 +12,7 @@ export const PolicyViewer: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   
   const [formData, setFormData] = useState<PolicyRequest>({
-    content: '',
+    policy_content: '',
     company_name: '',
     company_url: '',
     document_type: 'privacy_policy',
@@ -121,13 +121,13 @@ export const PolicyViewer: React.FC = () => {
             </div>
 
             <div>
-              <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="policy_content" className="block text-sm font-medium text-gray-700 mb-1">
                 Privacy Policy Content *
               </label>
               <textarea
-                id="content"
-                name="content"
-                value={formData.content}
+                id="policy_content"
+                name="policy_content"
+                value={formData.policy_content}
                 onChange={handleInputChange}
                 required
                 rows={8}
@@ -173,16 +173,16 @@ export const PolicyViewer: React.FC = () => {
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                 <div className="text-center">
-                  <div className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getRiskLevelColor(result.policy_analysis.risk_level)}`}>
-                    {result.policy_analysis.risk_level.toUpperCase()} RISK
+                  <div className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getRiskLevelColor(result.document.overall_risk_level)}`}>
+                    {result.document.overall_risk_level.toUpperCase()} RISK
                   </div>
                 </div>
                 <div className="text-center">
                   <div className="text-2xl mb-1">
-                    {getUserFriendlinessStars(result.policy_analysis.user_friendliness)}
+                    {getUserFriendlinessStars(result.document.user_friendliness_score)}
                   </div>
                   <div className="text-sm text-gray-600">
-                    User Friendliness ({result.policy_analysis.user_friendliness}/5)
+                    User Friendliness ({result.document.user_friendliness_score}/5)
                   </div>
                 </div>
                 <div className="text-center">
@@ -194,16 +194,23 @@ export const PolicyViewer: React.FC = () => {
               </div>
 
               <div className="prose prose-sm max-w-none">
-                <p className="text-gray-700 leading-relaxed">{result.policy_analysis.summary}</p>
+                <p className="text-gray-700 leading-relaxed">
+                  Analysis of {result.document.company_name}'s privacy policy reveals {result.document.sections.length} key sections 
+                  with an overall risk level of {result.document.overall_risk_level}. The policy scores {result.document.user_friendliness_score}/5 
+                  for user friendliness.
+                </p>
               </div>
 
-              {result.policy_analysis.recommendations.length > 0 && (
+              {result.document.sections.length > 0 && (
                 <div className="mt-4 p-3 bg-blue-50 rounded-md">
-                  <h4 className="font-medium text-blue-800 mb-2">💡 Recommendations:</h4>
+                  <h4 className="font-medium text-blue-800 mb-2">📋 Key Sections Analyzed:</h4>
                   <ul className="list-disc list-inside space-y-1 text-sm text-blue-700">
-                    {result.policy_analysis.recommendations.map((rec, index) => (
-                      <li key={index}>{rec}</li>
+                    {result.document.sections.slice(0, 5).map((section, index) => (
+                      <li key={index}>{section.title}</li>
                     ))}
+                    {result.document.sections.length > 5 && (
+                      <li>... and {result.document.sections.length - 5} more sections</li>
+                    )}
                   </ul>
                 </div>
               )}
@@ -220,7 +227,7 @@ export const PolicyViewer: React.FC = () => {
             
             <div className="space-y-4">
               {result.ui_components
-                .sort((a, b) => b.importance_score - a.importance_score)
+                .sort((a, b) => a.priority - b.priority)
                 .map((component) => (
                   <DynamicPolicyComponent key={component.id} component={component} />
                 ))}

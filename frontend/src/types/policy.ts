@@ -1,42 +1,53 @@
-// Types matching the API response structure
+// Types matching the actual backend API response structure
 export interface PrivacyPolicy {
   processing_id: string;
-  policy_analysis: PolicyAnalysis;
+  document: PrivacyPolicyDocument;
   ui_components: UIComponent[];
-  user_feedback: any;
   processing_time: number;
-  version: string;
+  timestamp: string;
 }
 
-export interface PolicyAnalysis {
-  document_analysis: DocumentAnalysis;
-  risk_level: RiskLevel;
-  user_friendliness: number;
-  recommendations: string[];
-  summary: string;
-}
-
-export interface DocumentAnalysis {
-  metadata: DocumentMetadata;
-  content_overview: ContentOverview;
-  key_entities: KeyEntity[];
-  user_impact_assessment: UserImpactAssessment;
-  importance_scores: ImportanceScore[];
-}
-
-export interface DocumentMetadata {
+export interface PrivacyPolicyDocument {
+  id: string;
+  company_name: string;
   title: string;
-  language: string;
-  word_count: number;
-  last_updated: string;
+  version?: string;
+  effective_date?: string;
+  sections: ProcessedSection[];
+  overall_risk_level: RiskLevel;
+  user_friendliness_score: number;
+  processing_status: string;
+  created_at: string;
+  updated_at: string;
 }
 
-export interface ContentOverview {
+export interface ProcessedSection {
+  id: string;
+  title: string;
+  content: string;
+  summary: string;
   data_types: DataType[];
-  purposes: string[];
-  third_parties: string[];
-  storage_period: string;
   user_rights: UserRight[];
+  entities: ExtractedEntity[];
+  user_impact: UserImpactAnalysis;
+  legal_frameworks: LegalFramework[];
+  importance_score: number;
+  processing_timestamp: string;
+}
+
+export interface ExtractedEntity {
+  entity_type: string;
+  value: string;
+  context: string;
+  confidence: number;
+}
+
+export interface UserImpactAnalysis {
+  risk_level: RiskLevel;
+  user_control: number;
+  transparency_score: number;
+  key_concerns: string[];
+  actionable_rights: UserRight[];
 }
 
 export interface DataType {
@@ -53,25 +64,10 @@ export interface UserRight {
   limitations: string[];
 }
 
-export interface KeyEntity {
-  name: string;
-  type: "company" | "regulator" | "third_party" | "concept";
+export interface LegalFramework {
+  framework: string;
   description: string;
-  relevance: "high" | "medium" | "low";
-}
-
-export interface UserImpactAssessment {
-  overall_risk: RiskLevel;
-  user_benefit: "high" | "medium" | "low";
-  transparency: "high" | "medium" | "low";
-  user_control: "high" | "medium" | "low";
-  privacy_implications: string[];
-}
-
-export interface ImportanceScore {
-  content_area: string;
-  score: number;
-  reasoning: string;
+  compliance_required: boolean;
 }
 
 export type RiskLevel = "low" | "medium" | "high";
@@ -79,21 +75,28 @@ export type RiskLevel = "low" | "medium" | "high";
 export interface UIComponent {
   id: string;
   type: "highlight_card" | "risk_warning" | "rights_interactive" | "data_collection_card" | "standard_card";
-  title: string;
-  content: string;
-  metadata: ComponentMetadata;
-  importance_score: number;
-}
-
-export interface ComponentMetadata {
-  visual_style: "info" | "warning" | "error" | "success";
-  requires_attention: boolean;
-  user_action_required: boolean;
-  related_sections: string[];
+  priority: number;
+  content: {
+    title: string;
+    summary: string;
+    risk_level: RiskLevel;
+    user_control: number;
+    transparency_score: number;
+    key_concerns: string[];
+    user_rights: string[];
+    data_types: string[];
+    importance_score: number;
+    original_content: string;
+  };
+  metadata: {
+    processing_timestamp: string;
+    entities_count: number;
+    actionable_rights: string[];
+  };
 }
 
 export interface PolicyRequest {
-  content: string;
+  policy_content: string;
   company_name: string;
   company_url?: string;
   document_type?: string;
