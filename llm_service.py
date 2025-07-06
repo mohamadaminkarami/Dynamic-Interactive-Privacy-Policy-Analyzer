@@ -803,35 +803,7 @@ class LLMService:
             for i, q_data in enumerate(raw_questions):
                 question_id = f"q_{quiz_id}_{i+1}"
                 
-                # Create options
-                options = []
-                raw_options = q_data.get("options", [])
-                correct_answer = q_data.get("correct_answer", q_data.get("correctAnswer", ""))
-                
-                for j, option_text in enumerate(raw_options):
-                    option_id = f"opt_{question_id}_{j+1}"
-                    # For multiple choice, determine if this is correct based on the answer
-                    is_correct = False
-                    if correct_answer and isinstance(option_text, str):
-                        # Check if this option matches the correct answer
-                        if option_text.strip() == correct_answer.strip():
-                            is_correct = True
-                        elif correct_answer in option_text or option_text in correct_answer:
-                            is_correct = True
-                    
-                    options.append(QuizOption(
-                        id=option_id,
-                        text=option_text,
-                        is_correct=is_correct,
-                        explanation=None  # Individual option explanations not provided by LLM
-                    ))
-                
-                # Determine points based on difficulty
-                difficulty = q_data.get("difficulty", "medium")
-                points = {"easy": 1, "medium": 2, "hard": 3}.get(difficulty, 2)
-                total_points += points
-                
-                # Map LLM field names to our format
+                # Map LLM field names to our format first
                 question_text = q_data.get("question", q_data.get("question_text", ""))
                 question_type = q_data.get("type", q_data.get("question_type", "multiple_choice"))
                 
@@ -842,6 +814,54 @@ class LLMService:
                     question_type = "true_false"
                 elif "fill" in question_type.lower() or "blank" in question_type.lower():
                     question_type = "fill_blank"
+                
+                # Create options
+                options = []
+                raw_options = q_data.get("options", [])
+                correct_answer = q_data.get("correct_answer", q_data.get("correctAnswer", ""))
+                
+                # Handle true/false questions specially
+                if question_type == "true_false":
+                    # Always create True/False options for true/false questions
+                    is_true_correct = correct_answer.lower() in ["true", "t", "yes", "1"]
+                    
+                    options.append(QuizOption(
+                        id=f"opt_{question_id}_true",
+                        text="True",
+                        is_correct=is_true_correct,
+                        explanation=None
+                    ))
+                    
+                    options.append(QuizOption(
+                        id=f"opt_{question_id}_false", 
+                        text="False",
+                        is_correct=not is_true_correct,
+                        explanation=None
+                    ))
+                else:
+                    # Handle multiple choice and fill-in-the-blank
+                    for j, option_text in enumerate(raw_options):
+                        option_id = f"opt_{question_id}_{j+1}"
+                        # For multiple choice, determine if this is correct based on the answer
+                        is_correct = False
+                        if correct_answer and isinstance(option_text, str):
+                            # Check if this option matches the correct answer
+                            if option_text.strip() == correct_answer.strip():
+                                is_correct = True
+                            elif correct_answer in option_text or option_text in correct_answer:
+                                is_correct = True
+                        
+                        options.append(QuizOption(
+                            id=option_id,
+                            text=option_text,
+                            is_correct=is_correct,
+                            explanation=None  # Individual option explanations not provided by LLM
+                        ))
+                
+                # Determine points based on difficulty
+                difficulty = q_data.get("difficulty", "medium")
+                points = {"easy": 1, "medium": 2, "hard": 3}.get(difficulty, 2)
+                total_points += points
                 
                 question = QuizQuestion(
                     id=question_id,
