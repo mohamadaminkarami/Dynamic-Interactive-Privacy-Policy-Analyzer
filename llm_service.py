@@ -838,8 +838,16 @@ class LLMService:
                         is_correct=not is_true_correct,
                         explanation=None
                     ))
+                elif question_type == "fill_blank":
+                    # For fill-in-the-blank, create a single option with the correct answer
+                    options.append(QuizOption(
+                        id=f"opt_{question_id}_answer",
+                        text=correct_answer,
+                        is_correct=True,
+                        explanation=None
+                    ))
                 else:
-                    # Handle multiple choice and fill-in-the-blank
+                    # Handle multiple choice questions
                     for j, option_text in enumerate(raw_options):
                         option_id = f"opt_{question_id}_{j+1}"
                         # For multiple choice, determine if this is correct based on the answer

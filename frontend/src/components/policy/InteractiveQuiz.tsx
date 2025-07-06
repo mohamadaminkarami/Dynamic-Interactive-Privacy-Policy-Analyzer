@@ -27,14 +27,18 @@ const InteractiveQuizComponent: React.FC<InteractiveQuizProps> = ({ quiz, onComp
 
   const currentQuestion = quiz.questions[state.currentQuestionIndex];
   const isLastQuestion = state.currentQuestionIndex === quiz.questions.length - 1;
-  const hasAnswered = state.answers[currentQuestion?.id] !== undefined;
+  const hasAnswered = currentQuestion ? (
+    currentQuestion.question_type === 'fill_blank' 
+      ? (state.answers[currentQuestion.id] || '').trim().length > 0
+      : state.answers[currentQuestion.id] !== undefined
+  ) : false;
 
-  const handleAnswerSelect = (questionId: string, optionId: string) => {
+  const handleAnswerSelect = (questionId: string, answer: string) => {
     setState(prev => ({
       ...prev,
       answers: {
         ...prev.answers,
-        [questionId]: optionId
+        [questionId]: answer
       }
     }));
   };
@@ -60,11 +64,22 @@ const InteractiveQuizComponent: React.FC<InteractiveQuizProps> = ({ quiz, onComp
     // Calculate score
     quiz.questions.forEach(question => {
       totalPoints += question.points;
-      const selectedOptionId = state.answers[question.id];
-      if (selectedOptionId) {
-        const selectedOption = question.options.find(opt => opt.id === selectedOptionId);
-        if (selectedOption?.is_correct) {
-          totalScore += question.points;
+      const userAnswer = state.answers[question.id];
+      
+      if (userAnswer) {
+        if (question.question_type === 'fill_blank') {
+          // For fill-in-the-blank, check if the answer matches the correct option text
+          const correctOption = question.options.find(opt => opt.is_correct);
+          if (correctOption && 
+              userAnswer.toLowerCase().trim() === correctOption.text.toLowerCase().trim()) {
+            totalScore += question.points;
+          }
+        } else {
+          // For multiple choice and true/false, check if selected option is correct
+          const selectedOption = question.options.find(opt => opt.id === userAnswer);
+          if (selectedOption?.is_correct) {
+            totalScore += question.points;
+          }
         }
       }
     });
@@ -172,35 +187,52 @@ const InteractiveQuizComponent: React.FC<InteractiveQuizProps> = ({ quiz, onComp
             </span>
           </div>
 
-          {/* Options */}
+          {/* Options / Input */}
           <div className="space-y-3">
-            {currentQuestion.options.map((option) => {
-              const isSelected = state.answers[currentQuestion.id] === option.id;
-              return (
-                <button
-                  key={option.id}
-                  onClick={() => handleAnswerSelect(currentQuestion.id, option.id)}
-                  className={`w-full text-left p-4 rounded-lg border-2 transition-all duration-200 ${
-                    isSelected 
-                      ? 'border-blue-500 bg-blue-50 text-blue-900' 
-                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                  }`}
-                >
-                  <div className="flex items-center">
-                    <div className={`w-5 h-5 rounded-full border-2 mr-3 flex items-center justify-center ${
+            {currentQuestion.question_type === 'fill_blank' ? (
+              // Fill-in-the-blank input
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Your answer:
+                </label>
+                <input
+                  type="text"
+                  value={state.answers[currentQuestion.id] || ''}
+                  onChange={(e) => handleAnswerSelect(currentQuestion.id, e.target.value)}
+                  placeholder="Type your answer here..."
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition-colors"
+                />
+              </div>
+            ) : (
+              // Multiple choice and true/false options
+              currentQuestion.options.map((option) => {
+                const isSelected = state.answers[currentQuestion.id] === option.id;
+                return (
+                  <button
+                    key={option.id}
+                    onClick={() => handleAnswerSelect(currentQuestion.id, option.id)}
+                    className={`w-full text-left p-4 rounded-lg border-2 transition-all duration-200 ${
                       isSelected 
-                        ? 'border-blue-500 bg-blue-500' 
-                        : 'border-gray-300'
-                    }`}>
-                      {isSelected && (
-                        <div className="w-2 h-2 bg-white rounded-full" />
-                      )}
+                        ? 'border-blue-500 bg-blue-50 text-blue-900' 
+                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="flex items-center">
+                      <div className={`w-5 h-5 rounded-full border-2 mr-3 flex items-center justify-center ${
+                        isSelected 
+                          ? 'border-blue-500 bg-blue-500' 
+                          : 'border-gray-300'
+                      }`}>
+                        {isSelected && (
+                          <div className="w-2 h-2 bg-white rounded-full" />
+                        )}
+                      </div>
+                      <span className={isSelected ? 'font-medium' : ''}>{option.text}</span>
                     </div>
-                    <span className={isSelected ? 'font-medium' : ''}>{option.text}</span>
-                  </div>
-                </button>
-              );
-            })}
+                  </button>
+                );
+              })
+            )}
           </div>
         </div>
 
@@ -274,10 +306,23 @@ const QuizResults: React.FC<QuizResultsProps> = ({ quiz, answers, score, onResta
           <h4 className="font-semibold text-gray-900">Question Review</h4>
           
           {quiz.questions.map((question, index) => {
-            const selectedOptionId = answers[question.id];
-            const selectedOption = question.options.find(opt => opt.id === selectedOptionId);
+            const userAnswer = answers[question.id];
             const correctOption = question.options.find(opt => opt.is_correct);
-            const isCorrect = selectedOption?.is_correct || false;
+            
+            let isCorrect = false;
+            let displayAnswer = '';
+            
+            if (question.question_type === 'fill_blank') {
+              // For fill-in-the-blank questions
+              displayAnswer = userAnswer || '';
+              isCorrect = correctOption && 
+                userAnswer?.toLowerCase().trim() === correctOption.text.toLowerCase().trim();
+            } else {
+              // For multiple choice and true/false questions
+              const selectedOption = question.options.find(opt => opt.id === userAnswer);
+              displayAnswer = selectedOption?.text || '';
+              isCorrect = selectedOption?.is_correct || false;
+            }
 
             return (
               <div key={question.id} className="border rounded-lg p-4">
@@ -292,11 +337,11 @@ const QuizResults: React.FC<QuizResultsProps> = ({ quiz, answers, score, onResta
                   </span>
                 </div>
                 
-                {selectedOption && (
+                {displayAnswer && (
                   <div className="mb-2">
                     <span className="text-sm text-gray-600">Your answer: </span>
                     <span className={isCorrect ? 'text-green-600' : 'text-red-600'}>
-                      {selectedOption.text}
+                      {displayAnswer}
                     </span>
                   </div>
                 )}
