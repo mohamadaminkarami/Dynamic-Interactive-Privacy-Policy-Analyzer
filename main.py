@@ -152,10 +152,10 @@ def generate_ui_components(document: PrivacyPolicyDocument) -> List[UIComponent]
     sorted_sections = sorted(document.sections, key=lambda s: s.importance_score, reverse=True)
     
     for i, section in enumerate(sorted_sections):
-        # Determine component type based on content
+        # Determine component type based on content and new scoring
         component_type = determine_component_type(section)
         
-        # Create component
+        # Create component with enhanced numerical scoring
         component = UIComponent(
             id=f"component_{section.id}",
             type=component_type,
@@ -164,18 +164,47 @@ def generate_ui_components(document: PrivacyPolicyDocument) -> List[UIComponent]
                 "title": section.title,
                 "summary": section.summary,
                 "risk_level": section.user_impact.risk_level.value,
+                # Enhanced numerical scores
+                "sensitivity_score": section.user_impact.sensitivity_score,
+                "privacy_impact_score": section.user_impact.privacy_impact_score,
+                "data_sharing_risk": section.user_impact.data_sharing_risk,
+                # Original scores
                 "user_control": section.user_impact.user_control,
                 "transparency_score": section.user_impact.transparency_score,
                 "key_concerns": section.user_impact.key_concerns,
                 "user_rights": [right.value for right in section.user_rights],
                 "data_types": [dt.value for dt in section.data_types],
                 "importance_score": section.importance_score,
-                "original_content": section.content
+                "original_content": section.original_content,
+                # Enhanced UI features
+                "engagement_level": section.user_impact.engagement_level,
+                "requires_quiz": section.user_impact.requires_quiz,
+                "requires_visual_aid": section.user_impact.requires_visual_aid,
+                "text_emphasis_level": section.user_impact.text_emphasis_level,
+                "highlight_color": section.user_impact.highlight_color,
+                "font_weight": section.user_impact.font_weight,
+                # Additional metadata
+                "word_count": section.word_count,
+                "reading_time": section.reading_time,
+                # Styled content for text visualization
+                "styled_content": section.styled_content.dict() if section.styled_content else None,
+                "styled_summary": section.styled_summary.dict() if section.styled_summary else None,
+                # Quiz data for high-sensitivity sections
+                "quiz": section.quiz.dict() if section.quiz else None,
             },
             metadata={
                 "processing_timestamp": section.processing_timestamp.isoformat(),
                 "entities_count": len(section.entities),
-                "actionable_rights": [right.value for right in section.user_impact.actionable_rights]
+                "actionable_rights": [right.value for right in section.user_impact.actionable_rights],
+                "section_priority": section.section_priority,
+                "ui_enhancement_features": {
+                    "needs_interaction": section.user_impact.engagement_level in ["interactive", "quiz"],
+                    "high_attention": section.user_impact.sensitivity_score >= 8.0,
+                    "visual_aids_needed": section.user_impact.requires_visual_aid,
+                    "quiz_recommended": section.user_impact.requires_quiz,
+                    "styled_content_available": section.styled_content is not None and section.styled_content.styling_applied,
+                    "styled_summary_available": section.styled_summary is not None and section.styled_summary.styling_applied,
+                }
             }
         )
         
@@ -184,14 +213,29 @@ def generate_ui_components(document: PrivacyPolicyDocument) -> List[UIComponent]
     return components
 
 def determine_component_type(section: ProcessedSection) -> str:
-    """Determine the best UI component type for a section"""
+    """Determine the best UI component type for a section based on enhanced scoring"""
+    
+    # Use engagement level as primary determinant
+    if section.user_impact.engagement_level == "quiz":
+        return "quiz_component"
+    
+    if section.user_impact.engagement_level == "interactive":
+        return "interactive_component"
+    
+    # High sensitivity scores get special treatment
+    if section.user_impact.sensitivity_score >= 8.0:
+        return "high_sensitivity_card"
+    
+    # High privacy impact = warning component
+    if section.user_impact.privacy_impact_score >= 7.0:
+        return "privacy_warning"
     
     # High importance = highlight card
     if section.importance_score > 0.8:
         return "highlight_card"
     
-    # High risk = warning component
-    if section.user_impact.risk_level == RiskLevel.HIGH:
+    # High data sharing risk = risk warning
+    if section.user_impact.data_sharing_risk >= 7.0:
         return "risk_warning"
     
     # User rights = interactive component
@@ -259,6 +303,18 @@ async def analyze_policy(request: PolicyProcessingRequest):
         overall_risk = calculate_overall_risk(processed_sections)
         user_friendliness = calculate_user_friendliness(processed_sections)
         
+        # Calculate enhanced numerical scores
+        overall_sensitivity = calculate_overall_sensitivity(processed_sections)
+        overall_privacy_impact = calculate_overall_privacy_impact(processed_sections)
+        compliance_score = calculate_compliance_score(processed_sections)
+        readability_score = calculate_readability_score(processed_sections)
+        
+        # Calculate document statistics
+        total_words = sum(section.word_count for section in processed_sections)
+        estimated_reading_time = max(1, total_words // 200)  # ~200 words per minute
+        high_risk_count = sum(1 for section in processed_sections if section.user_impact.sensitivity_score >= 8.0)
+        interactive_count = sum(1 for section in processed_sections if section.user_impact.engagement_level in ["interactive", "quiz"])
+        
         # Step 4: Create processed document
         document = PrivacyPolicyDocument(
             id=processing_id,
@@ -269,6 +325,16 @@ async def analyze_policy(request: PolicyProcessingRequest):
             sections=processed_sections,
             overall_risk_level=overall_risk,
             user_friendliness_score=user_friendliness,
+            # Enhanced numerical scores
+            overall_sensitivity_score=overall_sensitivity,
+            overall_privacy_impact=overall_privacy_impact,
+            compliance_score=compliance_score,
+            readability_score=readability_score,
+            # Document statistics
+            total_word_count=total_words,
+            estimated_reading_time=estimated_reading_time,
+            high_risk_sections=high_risk_count,
+            interactive_sections=interactive_count,
             processing_status="completed"
         )
         
@@ -326,6 +392,62 @@ def calculate_user_friendliness(sections: List[ProcessedSection]) -> int:
     # Combine transparency and control scores
     friendliness = (avg_transparency + avg_control) / 2
     return int(round(friendliness))
+
+def calculate_overall_sensitivity(sections: List[ProcessedSection]) -> float:
+    """Calculate overall sensitivity score (0-10) from all sections"""
+    if not sections:
+        return 5.0
+    
+    # Weight by importance score
+    weighted_sum = sum(section.user_impact.sensitivity_score * section.importance_score for section in sections)
+    total_weight = sum(section.importance_score for section in sections)
+    
+    if total_weight == 0:
+        return sum(section.user_impact.sensitivity_score for section in sections) / len(sections)
+    
+    return round(weighted_sum / total_weight, 1)
+
+def calculate_overall_privacy_impact(sections: List[ProcessedSection]) -> float:
+    """Calculate overall privacy impact score (0-10) from all sections"""
+    if not sections:
+        return 5.0
+    
+    # Weight by importance score
+    weighted_sum = sum(section.user_impact.privacy_impact_score * section.importance_score for section in sections)
+    total_weight = sum(section.importance_score for section in sections)
+    
+    if total_weight == 0:
+        return sum(section.user_impact.privacy_impact_score for section in sections) / len(sections)
+    
+    return round(weighted_sum / total_weight, 1)
+
+def calculate_compliance_score(sections: List[ProcessedSection]) -> float:
+    """Calculate compliance score (0-10) based on transparency and user control"""
+    if not sections:
+        return 5.0
+    
+    # Calculate based on transparency and user control
+    avg_transparency = sum(section.user_impact.transparency_score for section in sections) / len(sections)
+    avg_control = sum(section.user_impact.user_control for section in sections) / len(sections)
+    
+    # Convert from 1-5 scale to 0-10 scale
+    compliance = ((avg_transparency + avg_control) / 2) * 2
+    return round(compliance, 1)
+
+def calculate_readability_score(sections: List[ProcessedSection]) -> float:
+    """Calculate readability score (0-10) based on section complexity and clarity"""
+    if not sections:
+        return 5.0
+    
+    # Base score on transparency scores and content complexity
+    avg_transparency = sum(section.user_impact.transparency_score for section in sections) / len(sections)
+    
+    # Adjust based on content length (longer sections are typically harder to read)
+    avg_word_count = sum(section.word_count for section in sections) / len(sections)
+    length_penalty = min(2.0, avg_word_count / 200)  # Penalty for long sections
+    
+    readability = (avg_transparency * 2) - length_penalty
+    return round(max(0.0, min(10.0, readability)), 1)
 
 # Additional utility endpoints
 @app.get("/")

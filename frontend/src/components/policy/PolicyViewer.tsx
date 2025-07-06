@@ -171,68 +171,104 @@ export const PolicyViewer: React.FC = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                <div className="text-center">
-                  <div className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getRiskLevelColor(result.document.overall_risk_level)}`}>
-                    {result.document.overall_risk_level.toUpperCase()} RISK
+              <div className="bg-white p-6 rounded-lg shadow-md mb-6">
+                <h3 className="text-lg font-semibold mb-4">📊 Policy Analysis Summary</h3>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                  <div className="text-center">
+                    <div className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getRiskLevelColor(result.document.overall_risk_level)}`}>
+                      {result.document.overall_risk_level.toUpperCase()} RISK
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl mb-1">
+                      {getUserFriendlinessStars(result.document.user_friendliness_score)}
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      User Friendliness ({result.document.user_friendliness_score}/5)
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-lg font-bold text-blue-600">
+                      {result.processing_time.toFixed(1)}s
+                    </div>
+                    <div className="text-sm text-gray-600">Processing Time</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-lg font-bold text-green-600">
+                      {result.document.estimated_reading_time}min
+                    </div>
+                    <div className="text-sm text-gray-600">Reading Time</div>
                   </div>
                 </div>
-                <div className="text-center">
-                  <div className="text-2xl mb-1">
-                    {getUserFriendlinessStars(result.document.user_friendliness_score)}
-                  </div>
-                  <div className="text-sm text-gray-600">
-                    User Friendliness ({result.document.user_friendliness_score}/5)
-                  </div>
-                </div>
-                <div className="text-center">
-                  <div className="text-lg font-semibold text-blue-600">
-                    {result.processing_time.toFixed(1)}s
-                  </div>
-                  <div className="text-sm text-gray-600">Processing Time</div>
-                </div>
-              </div>
 
-              <div className="prose prose-sm max-w-none">
-                <p className="text-gray-700 leading-relaxed">
-                  Analysis of {result.document.company_name}'s privacy policy reveals {result.document.sections.length} key sections 
-                  with an overall risk level of {result.document.overall_risk_level}. The policy scores {result.document.user_friendliness_score}/5 
-                  for user friendliness.
-                </p>
-              </div>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                  <div className="text-center p-3 bg-gray-50 rounded-lg">
+                    <div className="text-2xl font-bold text-orange-600">
+                      {result.document.overall_sensitivity_score.toFixed(1)}
+                    </div>
+                    <div className="text-sm text-gray-600">Sensitivity Score</div>
+                    <div className="text-xs text-gray-500">0-10 scale</div>
+                  </div>
+                  <div className="text-center p-3 bg-gray-50 rounded-lg">
+                    <div className="text-2xl font-bold text-red-600">
+                      {result.document.overall_privacy_impact.toFixed(1)}
+                    </div>
+                    <div className="text-sm text-gray-600">Privacy Impact</div>
+                    <div className="text-xs text-gray-500">0-10 scale</div>
+                  </div>
+                  <div className="text-center p-3 bg-gray-50 rounded-lg">
+                    <div className="text-2xl font-bold text-green-600">
+                      {result.document.compliance_score.toFixed(1)}
+                    </div>
+                    <div className="text-sm text-gray-600">Compliance</div>
+                    <div className="text-xs text-gray-500">0-10 scale</div>
+                  </div>
+                  <div className="text-center p-3 bg-gray-50 rounded-lg">
+                    <div className="text-2xl font-bold text-blue-600">
+                      {result.document.readability_score.toFixed(1)}
+                    </div>
+                    <div className="text-sm text-gray-600">Readability</div>
+                    <div className="text-xs text-gray-500">0-10 scale</div>
+                  </div>
+                </div>
 
-              {result.document.sections.length > 0 && (
-                <div className="mt-4 p-3 bg-blue-50 rounded-md">
-                  <h4 className="font-medium text-blue-800 mb-2">📋 Key Sections Analyzed:</h4>
-                  <ul className="list-disc list-inside space-y-1 text-sm text-blue-700">
-                    {result.document.sections.slice(0, 5).map((section, index) => (
-                      <li key={index}>{section.title}</li>
-                    ))}
-                    {result.document.sections.length > 5 && (
-                      <li>... and {result.document.sections.length - 5} more sections</li>
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <div className="text-sm text-blue-800 mb-2">
+                    Analysis of {result.document.company_name}'s privacy policy reveals {result.document.sections.length} key sections.
+                    {result.document.high_risk_sections > 0 && (
+                      <span className="text-red-600 font-medium"> {result.document.high_risk_sections} high-sensitivity sections require special attention.</span>
                     )}
-                  </ul>
+                    {result.document.interactive_sections > 0 && (
+                      <span className="text-purple-600 font-medium"> {result.document.interactive_sections} sections include interactive elements.</span>
+                    )}
+                  </div>
+                  <div className="text-xs text-blue-600">
+                    📋 Total: {result.document.total_word_count.toLocaleString()} words • 
+                    📚 Sections: {result.document.sections.length} • 
+                    ⚡ Interactive: {result.document.interactive_sections} • 
+                    🚨 High-Risk: {result.document.high_risk_sections}
+                  </div>
                 </div>
-              )}
+              </div>
+
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                  📱 Dynamic Policy Presentation
+                </h2>
+                <p className="text-gray-600 mb-6">
+                  The following components are ranked by importance and presented in a user-centric format:
+                </p>
+                
+                <div className="space-y-4">
+                  {result.ui_components
+                    .sort((a, b) => a.priority - b.priority)
+                    .map((component) => (
+                      <DynamicPolicyComponent key={component.id} component={component} />
+                    ))}
+                </div>
+              </div>
             </CardContent>
           </Card>
-
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">
-              📱 Dynamic Policy Presentation
-            </h2>
-            <p className="text-gray-600 mb-6">
-              The following components are ranked by importance and presented in a user-centric format:
-            </p>
-            
-            <div className="space-y-4">
-              {result.ui_components
-                .sort((a, b) => a.priority - b.priority)
-                .map((component) => (
-                  <DynamicPolicyComponent key={component.id} component={component} />
-                ))}
-            </div>
-          </div>
         </div>
       )}
     </div>
