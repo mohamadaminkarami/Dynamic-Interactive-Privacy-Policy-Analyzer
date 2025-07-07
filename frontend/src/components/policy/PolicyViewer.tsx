@@ -10,6 +10,7 @@ export const PolicyViewer: React.FC = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState<PrivacyPolicy | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [allExpanded, setAllExpanded] = useState(true);
   
   const [formData, setFormData] = useState<PolicyRequest>({
     policy_content: '',
@@ -252,18 +253,32 @@ export const PolicyViewer: React.FC = () => {
               </div>
 
               <div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-4">
-                  📱 Dynamic Policy Presentation
-                </h2>
-                <p className="text-gray-600 mb-6">
-                  The following components are ranked by importance and presented in a user-centric format:
-                </p>
+                <div className="flex justify-between items-center mb-4">
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                      📱 Dynamic Policy Presentation
+                    </h2>
+                    <p className="text-gray-600">
+                      The following components are ranked by importance and presented in a user-centric format:
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setAllExpanded(!allExpanded)}
+                    className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium text-sm"
+                  >
+                    {allExpanded ? '📤 Collapse All' : '📥 Expand All'}
+                  </button>
+                </div>
                 
                 <div className="space-y-4">
                   {result.ui_components
                     .sort((a, b) => a.priority - b.priority)
                     .map((component) => (
-                      <DynamicPolicyComponent key={component.id} component={component} />
+                      <DynamicPolicyComponent 
+                        key={component.id} 
+                        component={component} 
+                        forceExpanded={allExpanded}
+                      />
                     ))}
                 </div>
               </div>

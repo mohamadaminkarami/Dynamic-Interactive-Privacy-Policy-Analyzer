@@ -6,15 +6,29 @@ import InteractiveQuizComponent from './InteractiveQuiz';
 
 interface DynamicPolicyComponentProps {
   component: UIComponent;
+  forceExpanded?: boolean;
 }
 
-export const DynamicPolicyComponent: React.FC<DynamicPolicyComponentProps> = ({ component }) => {
+export const DynamicPolicyComponent: React.FC<DynamicPolicyComponentProps> = ({ component, forceExpanded }) => {
   const [showQuiz, setShowQuiz] = useState(false);
   const [quizResults, setQuizResults] = useState<QuizResult | null>(null);
+  // Start expanded by default, but collapse low-importance sections
+  const [isExpanded, setIsExpanded] = useState(
+    component.content.importance_score > 0.5 || 
+    component.content.sensitivity_score >= 6.0 ||
+    component.content.requires_quiz
+  );
+  
+  // Use forceExpanded prop if provided, otherwise use local state
+  const actuallyExpanded = forceExpanded !== undefined ? forceExpanded : isExpanded;
 
   const handleQuizComplete = (result: QuizResult) => {
     setQuizResults(result);
     console.log('Quiz completed:', result);
+  };
+
+  const toggleExpanded = () => {
+    setIsExpanded(!isExpanded);
   };
   const getStyleByRiskLevel = (riskLevel: string) => {
     switch (riskLevel) {
@@ -134,6 +148,15 @@ export const DynamicPolicyComponent: React.FC<DynamicPolicyComponentProps> = ({ 
     <Card className={`${styleClass} border-l-4 transition-all duration-300 hover:shadow-lg`}>
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-lg">
+          <button
+            onClick={toggleExpanded}
+            className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+            title={actuallyExpanded ? 'Collapse section' : 'Expand section'}
+          >
+            <span className={`transition-transform duration-200 ${actuallyExpanded ? 'rotate-90' : ''}`}>
+              ▶
+            </span>
+          </button>
           <span className="text-xl">{icon}</span>
           <span className={textStyle}>{displayTitle}</span>
           <div className="ml-auto flex items-center gap-2">
@@ -162,9 +185,32 @@ export const DynamicPolicyComponent: React.FC<DynamicPolicyComponentProps> = ({ 
             )}
           </div>
         </CardTitle>
+        {/* Collapsed Summary */}
+        {!actuallyExpanded && (
+          <div className="mt-2 pt-2 border-t border-gray-200">
+            <div className="flex items-center justify-between text-sm text-gray-600">
+              <span className="truncate">
+                {component.content.key_concerns?.[0] || 'Click to expand for details'}
+              </span>
+              <div className="flex items-center gap-2 ml-2">
+                <span className="text-xs bg-gray-100 px-2 py-1 rounded-full">
+                  {component.content.user_rights?.length || 0} rights
+                </span>
+                {component.content.requires_quiz && (
+                  <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded-full">
+                    Quiz Available
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
+        <div className={`transition-all duration-300 ease-in-out overflow-hidden ${
+          actuallyExpanded ? 'max-h-none opacity-100' : 'max-h-0 opacity-0'
+        }`}>
+          <div className="space-y-4">
           {/* Enhanced Content Display */}
           {hasStyledSummary ? (
             <div className="mb-4">
@@ -291,6 +337,7 @@ export const DynamicPolicyComponent: React.FC<DynamicPolicyComponentProps> = ({ 
               </span>
             )}
           </div>
+        </div>
         </div>
       </CardContent>
     </Card>
