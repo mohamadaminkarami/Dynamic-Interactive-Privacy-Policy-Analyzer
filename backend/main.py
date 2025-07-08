@@ -7,12 +7,12 @@ import time
 from datetime import datetime
 import uuid
 
-from llm_service import LLMService
-from models import (
+from .llm_service import LLMService
+from .models import (
     PrivacyPolicyDocument, ProcessedSection, RiskLevel,
     ContentChunk, UserImpactAnalysis
 )
-from config import config
+from .config import config
 
 # Initialize FastAPI app
 app = FastAPI(

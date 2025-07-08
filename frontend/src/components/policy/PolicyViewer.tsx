@@ -82,43 +82,46 @@ export const PolicyViewer: React.FC = () => {
 
       <Card className="mb-8">
         <CardHeader>
-          <CardTitle>Analyze Privacy Policy</CardTitle>
+          <CardTitle className="text-xl text-gray-800 mb-2">Analyze Privacy Policy</CardTitle>
+          <p className="text-gray-600 text-sm">Enter your company information and privacy policy content to get started</p>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label htmlFor="company_name" className="block text-sm font-medium text-gray-700 mb-1">
-                Company Name *
-              </label>
-              <input
-                type="text"
-                id="company_name"
-                name="company_name"
-                value={formData.company_name}
-                onChange={handleInputChange}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="e.g., Tech Company Inc."
-              />
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label htmlFor="company_name" className="block text-sm font-semibold text-gray-700 mb-2">
+                  Company Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="company_name"
+                  name="company_name"
+                  value={formData.company_name}
+                  onChange={handleInputChange}
+                  required
+                  className="w-full px-4 py-3 bg-white border-2 border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:ring-4 focus:ring-blue-100 focus:border-blue-500 focus:outline-none transition-all duration-200 shadow-sm"
+                  placeholder="e.g., Tech Company Inc."
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="company_url" className="block text-sm font-semibold text-gray-700 mb-2">
+                  Company URL
+                </label>
+                <input
+                  type="url"
+                  id="company_url"
+                  name="company_url"
+                  value={formData.company_url}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 bg-white border-2 border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:ring-4 focus:ring-blue-100 focus:border-blue-500 focus:outline-none transition-all duration-200 shadow-sm"
+                  placeholder="https://example.com"
+                />
+              </div>
             </div>
 
-            <div>
-              <label htmlFor="company_url" className="block text-sm font-medium text-gray-700 mb-1">
-                Company URL
-              </label>
-              <input
-                type="url"
-                id="company_url"
-                name="company_url"
-                value={formData.company_url}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="https://example.com"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="contact_email" className="block text-sm font-medium text-gray-700 mb-1">
+            <div className="space-y-2">
+              <label htmlFor="contact_email" className="block text-sm font-semibold text-gray-700 mb-2">
                 Contact Email
               </label>
               <input
@@ -127,14 +130,14 @@ export const PolicyViewer: React.FC = () => {
                 name="contact_email"
                 value={formData.contact_email}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-3 bg-white border-2 border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:ring-4 focus:ring-blue-100 focus:border-blue-500 focus:outline-none transition-all duration-200 shadow-sm"
                 placeholder="privacy@company.com"
               />
             </div>
 
-            <div>
-              <label htmlFor="policy_content" className="block text-sm font-medium text-gray-700 mb-1">
-                Privacy Policy Content *
+            <div className="space-y-2">
+              <label htmlFor="policy_content" className="block text-sm font-semibold text-gray-700 mb-2">
+                Privacy Policy Content <span className="text-red-500">*</span>
               </label>
               <textarea
                 id="policy_content"
@@ -142,19 +145,44 @@ export const PolicyViewer: React.FC = () => {
                 value={formData.policy_content}
                 onChange={handleInputChange}
                 required
-                rows={8}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                rows={10}
+                className="w-full px-4 py-3 bg-white border-2 border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:ring-4 focus:ring-blue-100 focus:border-blue-500 focus:outline-none transition-all duration-200 shadow-sm resize-vertical"
                 placeholder="Paste the privacy policy content here..."
               />
+              <p className="text-xs text-gray-500 mt-1">
+                Minimum 100 characters recommended for accurate analysis
+              </p>
             </div>
 
-            <button
-              type="submit"
-              disabled={isAnalyzing}
-              className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
-            >
-              {isAnalyzing ? 'Analyzing...' : 'Analyze Privacy Policy'}
-            </button>
+            <div className="pt-4">
+              {/* Form validation indicator */}
+              {formData.company_name && formData.policy_content && (
+                <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="text-sm text-green-700 font-medium">Form is ready to analyze</span>
+                  </div>
+                </div>
+              )}
+              
+              <button
+                type="submit"
+                disabled={isAnalyzing || !formData.company_name || !formData.policy_content}
+                className="w-full px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-blue-800 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+              >
+                {isAnalyzing ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                    Analyzing Privacy Policy...
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center gap-2">
+                    <span>🔍</span>
+                    Analyze Privacy Policy
+                  </div>
+                )}
+              </button>
+            </div>
           </form>
         </CardContent>
       </Card>
@@ -184,7 +212,7 @@ export const PolicyViewer: React.FC = () => {
             </CardHeader>
             <CardContent>
               <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-                <h3 className="text-lg font-semibold mb-4">📊 Policy Analysis Summary</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">📊 Policy Analysis Summary</h3>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                   <div className="text-center">
                     <div className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getRiskLevelColor(result.document.overall_risk_level)}`}>

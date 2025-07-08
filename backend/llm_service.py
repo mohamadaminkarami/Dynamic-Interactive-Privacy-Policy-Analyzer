@@ -5,8 +5,8 @@ import asyncio
 from typing import Dict, List, Optional, Any, Union
 import openai
 
-from config import config
-from models import (
+from .config import config
+from .models import (
     LLMRequest, LLMResponse, ContentChunk, ProcessedSection, 
     UserImpactAnalysis, ExtractedEntity, RiskLevel, DataType, 
     UserRight, LegalFramework, TextSegment, StyledContent,
