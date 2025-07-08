@@ -1,16 +1,20 @@
 'use client';
 
 import React, { useState } from 'react';
-import { PrivacyPolicy, PolicyRequest } from '@/types/policy';
+import { PrivacyPolicy, PolicyRequest, UIComponent } from '@/types/policy';
 import { apiClient } from '@/lib/api';
 import { DynamicPolicyComponent } from '@/components/policy/DynamicPolicyComponent';
+import { PermissionConsentManager } from '@/components/policy/PermissionConsentManager';
 import { Card, CardHeader, CardContent, CardTitle } from '@/components/ui/Card';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export const PolicyViewer: React.FC = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState<PrivacyPolicy | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [allExpanded, setAllExpanded] = useState(true);
+  const [allExpanded, setAllExpanded] = useState(false); // Default to collapsed for better UX
+  const [activeTab, setActiveTab] = useState<'policy' | 'permissions'>('policy');
+  const [consentedPermissions, setConsentedPermissions] = useState<any[]>([]);
   
   const [formData, setFormData] = useState<PolicyRequest>({
     policy_content: '',
@@ -29,6 +33,7 @@ export const PolicyViewer: React.FC = () => {
     try {
       const response = await apiClient.analyzePolicy(formData);
       setResult(response);
+      setConsentedPermissions([]);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
@@ -39,6 +44,10 @@ export const PolicyViewer: React.FC = () => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handlePermissionConsentChange = (permissions: any[]) => {
+    setConsentedPermissions(permissions);
   };
 
   const getRiskLevelColor = (risk: string) => {
@@ -58,14 +67,16 @@ export const PolicyViewer: React.FC = () => {
     return '⭐'.repeat(Math.round(score));
   };
 
+  const sortedComponents = result?.ui_components?.sort((a, b) => a.priority - b.priority) || [];
+
   return (
-    <div className="max-w-4xl mx-auto p-6">
+    <div className="max-w-6xl mx-auto p-6">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">
           Dynamic Privacy Policy Analyzer
         </h1>
         <p className="text-gray-600">
-          Transform privacy policies into user-centric, interactive presentations
+          Transform privacy policies into user-centric, interactive presentations with consent management
         </p>
       </div>
 
@@ -117,7 +128,7 @@ export const PolicyViewer: React.FC = () => {
                 value={formData.contact_email}
                 onChange={handleInputChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="privacy@example.com"
+                placeholder="privacy@company.com"
               />
             </div>
 
@@ -142,7 +153,7 @@ export const PolicyViewer: React.FC = () => {
               disabled={isAnalyzing}
               className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
             >
-              {isAnalyzing ? 'Analyzing...' : 'Analyze Policy'}
+              {isAnalyzing ? 'Analyzing...' : 'Analyze Privacy Policy'}
             </button>
           </form>
         </CardContent>
@@ -202,86 +213,141 @@ export const PolicyViewer: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                  <div className="text-center p-3 bg-gray-50 rounded-lg">
-                    <div className="text-2xl font-bold text-orange-600">
-                      {result.document.overall_sensitivity_score.toFixed(1)}
-                    </div>
-                    <div className="text-sm text-gray-600">Sensitivity Score</div>
-                    <div className="text-xs text-gray-500">0-10 scale</div>
-                  </div>
-                  <div className="text-center p-3 bg-gray-50 rounded-lg">
-                    <div className="text-2xl font-bold text-red-600">
-                      {result.document.overall_privacy_impact.toFixed(1)}
-                    </div>
-                    <div className="text-sm text-gray-600">Privacy Impact</div>
-                    <div className="text-xs text-gray-500">0-10 scale</div>
-                  </div>
-                  <div className="text-center p-3 bg-gray-50 rounded-lg">
-                    <div className="text-2xl font-bold text-green-600">
-                      {result.document.compliance_score.toFixed(1)}
-                    </div>
-                    <div className="text-sm text-gray-600">Compliance</div>
-                    <div className="text-xs text-gray-500">0-10 scale</div>
-                  </div>
-                  <div className="text-center p-3 bg-gray-50 rounded-lg">
-                    <div className="text-2xl font-bold text-blue-600">
-                      {result.document.readability_score.toFixed(1)}
-                    </div>
-                    <div className="text-sm text-gray-600">Readability</div>
-                    <div className="text-xs text-gray-500">0-10 scale</div>
-                  </div>
-                </div>
-
-                <div className="bg-blue-50 p-4 rounded-lg">
-                  <div className="text-sm text-blue-800 mb-2">
-                    Analysis of {result.document.company_name}'s privacy policy reveals {result.document.sections.length} key sections.
-                    {result.document.high_risk_sections > 0 && (
-                      <span className="text-red-600 font-medium"> {result.document.high_risk_sections} high-sensitivity sections require special attention.</span>
-                    )}
-                    {result.document.interactive_sections > 0 && (
-                      <span className="text-purple-600 font-medium"> {result.document.interactive_sections} sections include interactive elements.</span>
-                    )}
-                  </div>
-                  <div className="text-xs text-blue-600">
-                    📋 Total: {result.document.total_word_count.toLocaleString()} words • 
-                    📚 Sections: {result.document.sections.length} • 
-                    ⚡ Interactive: {result.document.interactive_sections} • 
-                    🚨 High-Risk: {result.document.high_risk_sections}
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <div className="flex justify-between items-center mb-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                      📱 Dynamic Policy Presentation
-                    </h2>
-                    <p className="text-gray-600">
-                      The following components are ranked by importance and presented in a user-centric format:
-                    </p>
+                    <h4 className="font-medium text-gray-800 mb-2">Risk Assessment</h4>
+                    <div className="space-y-1 text-sm">
+                      <div className="flex justify-between">
+                        <span>Overall Sensitivity:</span>
+                        <span className="font-semibold">{result.document.overall_sensitivity_score?.toFixed(1)}/10</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Privacy Impact:</span>
+                        <span className="font-semibold">{result.document.overall_privacy_impact?.toFixed(1)}/10</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Compliance Score:</span>
+                        <span className="font-semibold">{result.document.compliance_score?.toFixed(1)}/10</span>
+                      </div>
+                    </div>
                   </div>
-                  <button
-                    onClick={() => setAllExpanded(!allExpanded)}
-                    className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium text-sm"
-                  >
-                    {allExpanded ? '📤 Collapse All' : '📥 Expand All'}
-                  </button>
-                </div>
-                
-                <div className="space-y-4">
-                  {result.ui_components
-                    .sort((a, b) => a.priority - b.priority)
-                    .map((component) => (
-                      <DynamicPolicyComponent 
-                        key={component.id} 
-                        component={component} 
-                        forceExpanded={allExpanded}
-                      />
-                    ))}
+                  <div>
+                    <h4 className="font-medium text-gray-800 mb-2">Content Overview</h4>
+                    <div className="space-y-1 text-sm">
+                      <div className="flex justify-between">
+                        <span>Total Sections:</span>
+                        <span className="font-semibold">{result.ui_components.length}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>High-Risk Sections:</span>
+                        <span className="font-semibold">{result.document.high_risk_sections || 0}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Interactive Sections:</span>
+                        <span className="font-semibold">{result.document.interactive_sections || 0}</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
+
+              {/* Tab Navigation */}
+              <div className="flex gap-2 mb-6">
+                <button
+                  onClick={() => setActiveTab('policy')}
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                    activeTab === 'policy'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  📱 Policy Sections
+                </button>
+                <button
+                  onClick={() => setActiveTab('permissions')}
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                    activeTab === 'permissions'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  🔐 Permission Consent
+                </button>
+              </div>
+
+              <AnimatePresence mode="wait">
+                {activeTab === 'policy' && (
+                  <motion.div
+                    key="policy"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <div className="flex justify-between items-center mb-4">
+                      <div>
+                        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                          📱 Dynamic Policy Presentation
+                        </h2>
+                        <p className="text-gray-600">
+                          Interactive sections with expandable summaries. Click any section to expand for full details.
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => setAllExpanded(!allExpanded)}
+                        className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium text-sm"
+                      >
+                        {allExpanded ? '📤 Collapse All' : '📥 Expand All'}
+                      </button>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      {sortedComponents.map((component) => (
+                        <DynamicPolicyComponent 
+                          key={component.id} 
+                          component={component} 
+                          forceExpanded={allExpanded}
+                        />
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+
+                {activeTab === 'permissions' && (
+                  <motion.div
+                    key="permissions"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <PermissionConsentManager
+                      components={sortedComponents}
+                      onConsentChange={handlePermissionConsentChange}
+                    />
+                    
+                    {/* Consent Summary */}
+                    {consentedPermissions.length > 0 && (
+                      <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                        <h3 className="font-semibold text-green-800 mb-2">
+                          ✅ Consent Summary
+                        </h3>
+                        <p className="text-sm text-green-700 mb-2">
+                          You have consented to {consentedPermissions.length} permission{consentedPermissions.length !== 1 ? 's' : ''}:
+                        </p>
+                        <ul className="text-sm text-green-700 space-y-1">
+                          {consentedPermissions.map((permission, index) => (
+                            <li key={index} className="flex items-start gap-2">
+                              <span className="text-green-500 mt-1">✓</span>
+                              <span>{permission.title} - {permission.description}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </CardContent>
           </Card>
         </div>
