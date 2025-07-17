@@ -1,0 +1,22 @@
+{
+  "webpage_id": "2b551869-0cd5-449b-820d-4494812c669f",
+  "template_id": "modern",
+  "company_name": "Demo Company",
+  "title": "Privacy Policy",
+  "created_at": "2025-07-18T01:10:15.640834",
+  "processing_id": "test-123",
+  "options": {},
+  "stats": {
+    "total_sections": 1,
+    "high_risk_sections": 1,
+    "interactive_sections": 2,
+    "overall_risk": "medium",
+    "user_friendliness": 4
+  },
+  "urls": {
+    "standalone": "/webpage/2b551869-0cd5-449b-820d-4494812c669f",
+    "embed_iframe": "/embed/iframe/2b551869-0cd5-449b-820d-4494812c669f",
+    "embed_widget": "/embed/widget/2b551869-0cd5-449b-820d-4494812c669f",
+    "api": "/api/webpage/2b551869-0cd5-449b-820d-4494812c669f"
+  }
+}
