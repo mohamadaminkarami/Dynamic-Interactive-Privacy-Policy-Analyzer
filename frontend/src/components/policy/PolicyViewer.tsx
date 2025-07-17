@@ -75,7 +75,7 @@ export const PolicyViewer: React.FC = () => {
         <h1 className="text-3xl font-bold text-gray-900 mb-2">
           Dynamic Privacy Policy Analyzer
         </h1>
-        <p className="text-gray-600">
+        <p className="text-gray-700 font-medium">
           Transform privacy policies into user-centric, interactive presentations with consent management
         </p>
       </div>
@@ -83,13 +83,13 @@ export const PolicyViewer: React.FC = () => {
       <Card className="mb-8">
         <CardHeader>
           <CardTitle className="text-xl text-gray-800 mb-2">Analyze Privacy Policy</CardTitle>
-          <p className="text-gray-600 text-sm">Enter your company information and privacy policy content to get started</p>
+          <p className="text-gray-700 text-sm font-medium">Enter your company information and privacy policy content to get started</p>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label htmlFor="company_name" className="block text-sm font-semibold text-gray-700 mb-2">
+                <label htmlFor="company_name" className="block text-sm font-semibold text-gray-800 mb-2">
                   Company Name <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -105,7 +105,7 @@ export const PolicyViewer: React.FC = () => {
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="company_url" className="block text-sm font-semibold text-gray-700 mb-2">
+                <label htmlFor="company_url" className="block text-sm font-semibold text-gray-800 mb-2">
                   Company URL
                 </label>
                 <input
@@ -121,7 +121,7 @@ export const PolicyViewer: React.FC = () => {
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="contact_email" className="block text-sm font-semibold text-gray-700 mb-2">
+              <label htmlFor="contact_email" className="block text-sm font-semibold text-gray-800 mb-2">
                 Contact Email
               </label>
               <input
@@ -136,7 +136,7 @@ export const PolicyViewer: React.FC = () => {
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="policy_content" className="block text-sm font-semibold text-gray-700 mb-2">
+              <label htmlFor="policy_content" className="block text-sm font-semibold text-gray-800 mb-2">
                 Privacy Policy Content <span className="text-red-500">*</span>
               </label>
               <textarea
@@ -149,7 +149,7 @@ export const PolicyViewer: React.FC = () => {
                 className="w-full px-4 py-3 bg-white border-2 border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:ring-4 focus:ring-blue-100 focus:border-blue-500 focus:outline-none transition-all duration-200 shadow-sm resize-vertical"
                 placeholder="Paste the privacy policy content here..."
               />
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-gray-600 mt-1 font-medium">
                 Minimum 100 characters recommended for accurate analysis
               </p>
             </div>
@@ -216,7 +216,10 @@ export const PolicyViewer: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                   <div className="text-center">
                     <div className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getRiskLevelColor(result.document.overall_risk_level)}`}>
-                      {result.document.overall_risk_level.toUpperCase()} RISK
+                      <div className="text-sm text-gray-800 font-semibold">
+                        {result.document.overall_risk_level.charAt(0).toUpperCase() + 
+                         result.document.overall_risk_level.slice(1)} Risk
+                      </div>
                     </div>
                   </div>
                   <div className="text-center">
@@ -231,48 +234,48 @@ export const PolicyViewer: React.FC = () => {
                     <div className="text-lg font-bold text-blue-600">
                       {result.processing_time.toFixed(1)}s
                     </div>
-                    <div className="text-sm text-gray-600">Processing Time</div>
+                    <div className="text-sm text-gray-800 font-medium">Processing Time</div>
                   </div>
                   <div className="text-center">
                     <div className="text-lg font-bold text-green-600">
                       {result.document.estimated_reading_time}min
                     </div>
-                    <div className="text-sm text-gray-600">Reading Time</div>
+                    <div className="text-sm text-gray-800 font-medium">Reading Time</div>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <h4 className="font-medium text-gray-800 mb-2">Risk Assessment</h4>
-                    <div className="space-y-1 text-sm">
+                    <h4 className="font-medium text-gray-900 mb-2">Risk Assessment</h4>
+                    <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
-                        <span>Overall Sensitivity:</span>
-                        <span className="font-semibold">{result.document.overall_sensitivity_score?.toFixed(1)}/10</span>
+                        <span className="text-gray-800 font-medium">Overall Sensitivity:</span>
+                        <span className="text-gray-900 font-semibold">{result.document.overall_sensitivity_score}/10</span>
                       </div>
                       <div className="flex justify-between">
-                        <span>Privacy Impact:</span>
-                        <span className="font-semibold">{result.document.overall_privacy_impact?.toFixed(1)}/10</span>
+                        <span className="text-gray-800 font-medium">Privacy Impact:</span>
+                        <span className="text-gray-900 font-semibold">{result.document.overall_privacy_impact}/10</span>
                       </div>
                       <div className="flex justify-between">
-                        <span>Compliance Score:</span>
-                        <span className="font-semibold">{result.document.compliance_score?.toFixed(1)}/10</span>
+                        <span className="text-gray-800 font-medium">Compliance Score:</span>
+                        <span className="text-gray-900 font-semibold">{result.document.compliance_score}/10</span>
                       </div>
                     </div>
                   </div>
                   <div>
-                    <h4 className="font-medium text-gray-800 mb-2">Content Overview</h4>
-                    <div className="space-y-1 text-sm">
+                    <h4 className="font-medium text-gray-900 mb-2">Content Overview</h4>
+                    <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
-                        <span>Total Sections:</span>
-                        <span className="font-semibold">{result.ui_components.length}</span>
+                        <span className="text-gray-800 font-medium">Total Sections:</span>
+                        <span className="text-gray-900 font-semibold">{result.ui_components.length}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span>High-Risk Sections:</span>
-                        <span className="font-semibold">{result.document.high_risk_sections || 0}</span>
+                        <span className="text-gray-800 font-medium">High-Risk Sections:</span>
+                        <span className="text-gray-900 font-semibold">{result.document.high_risk_sections}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span>Interactive Sections:</span>
-                        <span className="font-semibold">{result.document.interactive_sections || 0}</span>
+                        <span className="text-gray-800 font-medium">Interactive Sections:</span>
+                        <span className="text-gray-900 font-semibold">{result.document.interactive_sections}</span>
                       </div>
                     </div>
                   </div>
@@ -315,10 +318,10 @@ export const PolicyViewer: React.FC = () => {
                     <div className="flex justify-between items-center mb-4">
                       <div>
                         <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                          📱 Dynamic Policy Presentation
+                          Privacy Policy Sections
                         </h2>
-                        <p className="text-gray-600">
-                          Interactive sections with expandable summaries. Click any section to expand for full details.
+                        <p className="text-gray-700 font-medium">
+                          Interactive sections ordered by importance. Click to expand details.
                         </p>
                       </div>
                       <button

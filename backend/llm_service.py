@@ -446,34 +446,110 @@ class LLMService:
             impact_task = self.analyze_user_impact(chunk.content)
             summary_task = self.generate_summary(chunk.content)
             
-            # Wait for all tasks to complete
-            entities, user_impact, summary = await asyncio.gather(
-                entities_task, impact_task, summary_task
-            )
+            # Wait for all tasks to complete with individual error handling
+            entities = []
+            user_impact = None
+            summary = ""
             
-            # Calculate importance score
-            importance_score = await self.calculate_importance_score(chunk.content, user_impact)
+            try:
+                entities, user_impact, summary = await asyncio.gather(
+                    entities_task, impact_task, summary_task
+                )
+            except Exception as e:
+                print(f"⚠️  Error in parallel processing for chunk {chunk.id}: {e}")
+                # Try to recover with individual calls
+                try:
+                    entities = await entities_task if not entities else entities
+                except:
+                    entities = []
+                    print(f"⚠️  Entity extraction failed for chunk {chunk.id}")
+                
+                try:
+                    user_impact = await impact_task if not user_impact else user_impact
+                except:
+                    print(f"⚠️  Impact analysis failed for chunk {chunk.id}, using defaults")
+                    # Create default user impact analysis
+                    user_impact = UserImpactAnalysis(
+                        risk_level=RiskLevel.MEDIUM,
+                        sensitivity_score=5.0,
+                        privacy_impact_score=5.0,
+                        data_sharing_risk=5.0,
+                        user_control=3,
+                        transparency_score=3,
+                        key_concerns=["Analysis failed - manual review needed"],
+                        actionable_rights=[],
+                        engagement_level="standard",
+                        requires_quiz=False,
+                        requires_visual_aid=False,
+                        text_emphasis_level=2,
+                        highlight_color="neutral",
+                        font_weight="normal"
+                    )
+                
+                try:
+                    summary = await summary_task if not summary else summary
+                except:
+                    summary = f"Summary generation failed for this section. Original content: {chunk.content[:200]}..."
+                    print(f"⚠️  Summary generation failed for chunk {chunk.id}")
             
-            # Generate styled content based on sensitivity scores
-            styled_content_task = self.analyze_text_segments(chunk.content, user_impact.sensitivity_score)
-            styled_summary_task = self.analyze_text_segments(summary, user_impact.sensitivity_score)
+            # Calculate importance score with error handling
+            try:
+                importance_score = await self.calculate_importance_score(chunk.content, user_impact)
+            except Exception as e:
+                print(f"⚠️  Importance score calculation failed for chunk {chunk.id}: {e}")
+                importance_score = 0.5  # Default importance
             
-            # Wait for styling tasks to complete
-            styled_content, styled_summary = await asyncio.gather(
-                styled_content_task, styled_summary_task
-            )
+            # Generate styled content based on sensitivity scores with error handling
+            styled_content = None
+            styled_summary = None
+            
+            try:
+                styled_content_task = self.analyze_text_segments(chunk.content, user_impact.sensitivity_score)
+                styled_summary_task = self.analyze_text_segments(summary, user_impact.sensitivity_score)
+                
+                # Wait for styling tasks to complete
+                styled_content, styled_summary = await asyncio.gather(
+                    styled_content_task, styled_summary_task
+                )
+            except Exception as e:
+                print(f"⚠️  Text styling failed for chunk {chunk.id}: {e}")
+                # Create basic styled content fallbacks
+                styled_content = StyledContent(
+                    original_text=chunk.content,
+                    segments=[],
+                    overall_sensitivity=user_impact.sensitivity_score,
+                    styling_applied=False,
+                    high_sensitivity_count=0,
+                    medium_sensitivity_count=0,
+                    total_segments=0
+                )
+                styled_summary = StyledContent(
+                    original_text=summary,
+                    segments=[],
+                    overall_sensitivity=user_impact.sensitivity_score,
+                    styling_applied=False,
+                    high_sensitivity_count=0,
+                    medium_sensitivity_count=0,
+                    total_segments=0
+                )
             
             # Check if quiz should be generated
             requires_quiz = self.should_generate_quiz(user_impact)
             quiz = None
             
             if requires_quiz:
-                quiz = await self.generate_quiz_for_section(
-                    chunk.content, 
-                    chunk.section_title or f"Section {chunk.position}", 
-                    chunk.id, 
-                    user_impact.sensitivity_score
-                )
+                try:
+                    quiz = await self.generate_quiz_for_section(
+                        chunk.content, 
+                        chunk.section_title or f"Section {chunk.position}", 
+                        chunk.id, 
+                        user_impact.sensitivity_score
+                    )
+                    if quiz is None:
+                        print(f"⚠️  Quiz generation returned None for chunk {chunk.id} despite requires_quiz=True")
+                except Exception as e:
+                    print(f"⚠️  Quiz generation failed for chunk {chunk.id}: {e}")
+                    quiz = None
             
             # Extract data types and user rights from entities
             data_types = []
@@ -717,7 +793,9 @@ class LLMService:
                                        section_id: str, sensitivity_score: float) -> Optional[InteractiveQuiz]:
         """Generate an interactive quiz for high-sensitivity content"""
         
-        if sensitivity_score < 8.0:
+        # FIXED: Use the same logic as should_generate_quiz instead of hard cutoff
+        # This was the main bug - mismatch between should_generate and generate logic
+        if sensitivity_score < 7.0:  # Lower threshold to match should_generate_quiz
             return None
         
         # Create quiz generation prompt
@@ -794,6 +872,11 @@ class LLMService:
                 raw_questions = quiz_content.get("questions", [])
                 quiz_metadata = quiz_content
             
+            # Validate we have questions
+            if not raw_questions:
+                print(f"⚠️  No questions generated for section '{section_title}'")
+                return None
+            
             # Convert to our model format
             quiz_id = f"quiz_{section_id}_{int(time.time())}"
             
@@ -806,6 +889,11 @@ class LLMService:
                 # Map LLM field names to our format first
                 question_text = q_data.get("question", q_data.get("question_text", ""))
                 question_type = q_data.get("type", q_data.get("question_type", "multiple_choice"))
+                
+                # Skip questions without text
+                if not question_text:
+                    print(f"⚠️  Skipping question {i+1} - no question text")
+                    continue
                 
                 # Normalize question type
                 if "multiple" in question_type.lower():
@@ -840,15 +928,19 @@ class LLMService:
                     ))
                 elif question_type == "fill_blank":
                     # For fill-in-the-blank, create a single option with the correct answer
-                    options.append(QuizOption(
-                        id=f"opt_{question_id}_answer",
-                        text=correct_answer,
-                        is_correct=True,
-                        explanation=None
-                    ))
+                    if correct_answer:
+                        options.append(QuizOption(
+                            id=f"opt_{question_id}_answer",
+                            text=correct_answer,
+                            is_correct=True,
+                            explanation=None
+                        ))
                 else:
                     # Handle multiple choice questions
                     for j, option_text in enumerate(raw_options):
+                        if not option_text:  # Skip empty options
+                            continue
+                            
                         option_id = f"opt_{question_id}_{j+1}"
                         # For multiple choice, determine if this is correct based on the answer
                         is_correct = False
@@ -865,6 +957,11 @@ class LLMService:
                             is_correct=is_correct,
                             explanation=None  # Individual option explanations not provided by LLM
                         ))
+                
+                # Skip questions without valid options
+                if not options:
+                    print(f"⚠️  Skipping question {i+1} - no valid options")
+                    continue
                 
                 # Determine points based on difficulty
                 difficulty = q_data.get("difficulty", "medium")
@@ -885,6 +982,11 @@ class LLMService:
                 )
                 questions.append(question)
             
+            # Validate we have at least one valid question
+            if not questions:
+                print(f"⚠️  No valid questions created for section '{section_title}'")
+                return None
+            
             # Create quiz
             quiz = InteractiveQuiz(
                 id=quiz_id,
@@ -900,12 +1002,17 @@ class LLMService:
                 key_takeaways=quiz_metadata.get("key_takeaways", [])
             )
             
+            print(f"✅ Generated quiz for '{section_title}' with {len(questions)} questions")
             return quiz
             
-        except Exception as e:
-            print(f"Error generating quiz for section '{section_title}': {e}")
+        except json.JSONDecodeError as e:
+            print(f"⚠️  JSON parsing error for section '{section_title}': {e}")
+            print(f"   Raw response: {response.content[:200]}...")
             return None
-
+        except Exception as e:
+            print(f"⚠️  Error generating quiz for section '{section_title}': {e}")
+            return None
+    
     def should_generate_quiz(self, user_impact: UserImpactAnalysis) -> bool:
         """Determine if a section should have a quiz based on sensitivity scores"""
         # Generate quiz for high-sensitivity content

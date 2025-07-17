@@ -278,7 +278,7 @@ const InteractiveQuizComponent: React.FC<InteractiveQuizProps> = ({ quiz, onComp
                 ) : currentQuestion.question_type === 'true_false' ? (
                   // True/False with swipe gestures
                   <div>
-                    <div className="text-sm text-gray-600 mb-4 text-center">
+                    <div className="text-sm text-gray-800 mb-4 text-center font-medium">
                       Select an answer or use swipe gestures
                     </div>
                     <motion.div
@@ -296,20 +296,20 @@ const InteractiveQuizComponent: React.FC<InteractiveQuizProps> = ({ quiz, onComp
                           whileTap={{ scale: 0.98 }}
                           className={`relative p-4 rounded-lg border-2 transition-all ${
                             state.answers[currentQuestion.id] === option.text
-                              ? 'border-blue-500 bg-blue-50 text-blue-700'
-                              : 'border-gray-300 hover:border-gray-400'
+                              ? 'border-blue-500 bg-blue-50 text-blue-800 font-semibold'
+                              : 'border-gray-400 hover:border-gray-600 bg-white text-gray-800 hover:bg-gray-50'
                           }`}
                         >
                           <div className="flex items-center justify-center">
                             <span className="text-lg font-medium">{option.text}</span>
                           </div>
                           {option.text === 'True' && (
-                            <div className="absolute -top-2 -right-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                            <div className="absolute -top-2 -right-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full font-medium">
                               Swipe →
                             </div>
                           )}
                           {option.text === 'False' && (
-                            <div className="absolute -top-2 -left-2 text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full">
+                            <div className="absolute -top-2 -left-2 text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full font-medium">
                               ← Swipe
                             </div>
                           )}
@@ -327,15 +327,15 @@ const InteractiveQuizComponent: React.FC<InteractiveQuizProps> = ({ quiz, onComp
                       whileTap={{ scale: 0.99 }}
                       className={`w-full p-4 text-left rounded-lg border-2 transition-all ${
                         state.answers[currentQuestion.id] === option.text
-                          ? 'border-blue-500 bg-blue-50 text-blue-700'
-                          : 'border-gray-300 hover:border-gray-400'
+                          ? 'border-blue-500 bg-blue-50 text-blue-800 font-semibold'
+                          : 'border-gray-400 hover:border-gray-600 bg-white text-gray-800 hover:bg-gray-50'
                       }`}
                     >
                       <div className="flex items-center">
                         <span className="flex-shrink-0 w-6 h-6 rounded-full border-2 border-current mr-3 flex items-center justify-center">
                           {state.answers[currentQuestion.id] === option.text ? '✓' : ''}
                         </span>
-                        <span>{option.text}</span>
+                        <span className="font-medium">{option.text}</span>
                       </div>
                     </motion.button>
                   ))
@@ -356,8 +356,8 @@ const InteractiveQuizComponent: React.FC<InteractiveQuizProps> = ({ quiz, onComp
             whileTap={{ scale: 0.95 }}
             className={`px-4 py-2 rounded-lg font-medium transition-colors ${
               isFirstQuestion
-                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                : 'bg-gray-300 text-gray-800 hover:bg-gray-400'
             }`}
           >
             ← Previous
@@ -399,7 +399,7 @@ const InteractiveQuizComponent: React.FC<InteractiveQuizProps> = ({ quiz, onComp
                 whileTap={{ scale: canFinish ? 0.95 : 1 }}
                 className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                   canFinish
-                    ? 'bg-green-600 text-white hover:bg-green-700'
+                    ? 'bg-blue-600 text-white hover:bg-blue-700'
                     : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                 }`}
               >
@@ -478,7 +478,7 @@ const QuizResults: React.FC<QuizResultsProps> = ({ quiz, answers, score, onResta
           <h3 className={`text-2xl font-bold mb-2 ${passed ? 'text-green-800' : 'text-red-800'}`}>
             {passed ? 'Congratulations!' : 'Keep Learning!'}
           </h3>
-          <p className="text-gray-600 mb-4">
+          <p className="text-gray-700 mb-4 font-medium">
             {passed 
               ? 'You have successfully completed the quiz and demonstrated good understanding of this privacy policy section.'
               : 'You might want to review the content and try again to ensure you fully understand the privacy implications.'
@@ -542,12 +542,12 @@ const QuizResults: React.FC<QuizResultsProps> = ({ quiz, answers, score, onResta
                 </span>
               </div>
               
-              <h5 className="font-medium text-gray-800 mb-3">{result.question.question_text}</h5>
+              <h5 className="font-medium text-gray-900 mb-3">{result.question.question_text}</h5>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
                 <div>
-                  <div className="text-sm font-medium text-gray-700 mb-1">Your Answer:</div>
-                  <div className={`p-2 rounded text-sm ${
+                  <div className="text-sm font-medium text-gray-800 mb-1">Your Answer:</div>
+                  <div className={`p-2 rounded text-sm font-medium ${
                     result.isCorrect 
                       ? 'bg-green-100 text-green-800' 
                       : 'bg-red-100 text-red-800'
@@ -556,8 +556,8 @@ const QuizResults: React.FC<QuizResultsProps> = ({ quiz, answers, score, onResta
                   </div>
                 </div>
                 <div>
-                  <div className="text-sm font-medium text-gray-700 mb-1">Correct Answer:</div>
-                  <div className="p-2 rounded text-sm bg-green-100 text-green-800">
+                  <div className="text-sm font-medium text-gray-800 mb-1">Correct Answer:</div>
+                  <div className="p-2 rounded text-sm font-medium bg-green-100 text-green-800">
                     {result.correctAnswer}
                   </div>
                 </div>
