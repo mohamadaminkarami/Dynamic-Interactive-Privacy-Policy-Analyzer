@@ -13,7 +13,7 @@ export const StyledTextRenderer: React.FC<StyledTextRendererProps> = ({
   // If styling is not applied, render the original text
   if (!styledContent.styling_applied || styledContent.segments.length === 0) {
     return (
-      <div className={`text-gray-700 ${className}`}>
+      <div className={`text-gray-800 font-medium ${className}`}>
         {styledContent.original_text}
       </div>
     );
@@ -45,7 +45,7 @@ export const StyledTextRenderer: React.FC<StyledTextRendererProps> = ({
         return 'text-blue-800';
       case 'default':
       default:
-        return 'text-gray-800';
+        return 'text-gray-900';
     }
   };
 
@@ -127,7 +127,7 @@ export const StyledTextRenderer: React.FC<StyledTextRendererProps> = ({
           <React.Fragment key={segment.id}>
             {renderSegment(segment, index)}
             {/* Add spacing between segments */}
-            {index < styledContent.segments.length - 1 && <span className="text-gray-600"> </span>}
+            {index < styledContent.segments.length - 1 && <span className="text-gray-800"> </span>}
           </React.Fragment>
         ))}
       </div>
@@ -135,10 +135,10 @@ export const StyledTextRenderer: React.FC<StyledTextRendererProps> = ({
       {/* Context Legend */}
       {styledContent.segments.some(s => s.requires_attention) && (
         <div className="mt-4 p-3 bg-gray-50 border border-gray-200 rounded-lg">
-          <div className="text-xs font-medium text-gray-700 mb-2">📍 Content Types:</div>
+          <div className="text-xs font-medium text-gray-800 mb-2">📍 Content Types:</div>
           <div className="flex flex-wrap gap-2 text-xs">
             {Array.from(new Set(styledContent.segments.map(s => s.context_type))).map(type => (
-              <span key={type} className="px-2 py-1 bg-white border border-gray-300 rounded-full text-gray-600">
+              <span key={type} className="px-2 py-1 bg-white border border-gray-300 rounded-full text-gray-800 font-medium">
                 {type.replace('_', ' ')}
               </span>
             ))}

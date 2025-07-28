@@ -89,17 +89,17 @@ const DraggablePermission: React.FC<DraggablePermissionProps> = ({ permission, i
             {permission.riskLevel === 'high' ? '🔴' : 
              permission.riskLevel === 'medium' ? '🟡' : '🟢'}
           </span>
-          <h4 className="font-semibold text-gray-800">{permission.title}</h4>
+          <h4 className="font-semibold text-gray-900">{permission.title}</h4>
           {permission.required && (
             <span className="px-2 py-1 text-xs bg-red-100 text-red-800 rounded-full">
               Required
             </span>
           )}
         </div>
-        <div className="text-gray-400 text-sm">⋮⋮</div>
+        <div className="text-gray-700 text-sm font-medium">⋮⋮</div>
       </div>
       
-      <p className="text-sm text-gray-600 mb-3">{permission.description}</p>
+      <p className="text-sm text-gray-800 mb-3 font-medium">{permission.description}</p>
       
       <div className="space-y-2">
         <div className="flex flex-wrap gap-1">
@@ -113,12 +113,11 @@ const DraggablePermission: React.FC<DraggablePermissionProps> = ({ permission, i
           ))}
         </div>
         
-        <div className="text-xs text-gray-500">
-          <span className="font-medium">Purpose:</span> {permission.purpose}
+        <div className="text-xs text-gray-700 font-medium">
+          Impact: {permission.impactLevel}/5
         </div>
-        
-        <div className="text-xs text-gray-500">
-          <span className="font-medium">From:</span> {permission.source}
+        <div className="text-xs text-gray-700 font-medium">
+          Required: {permission.required ? 'Yes' : 'No'}
         </div>
       </div>
     </motion.div>
@@ -157,19 +156,16 @@ const DropZone: React.FC<DropZoneProps> = ({
       `}
     >
       <div className="text-center mb-4">
-        <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
-        <p className="text-sm text-gray-600">{subtitle}</p>
-        <div className="mt-2 text-sm text-gray-500">
-          {permissions.length} permission{permissions.length !== 1 ? 's' : ''}
+        <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+        <p className="text-sm text-gray-800 font-medium">{subtitle}</p>
+        <div className="mt-2 text-sm text-gray-700">
+          Drop permissions here to {title.toLowerCase().includes('agreed') ? 'agree' : 'decline'}
         </div>
       </div>
       
       {isEmpty && (
-        <div className="flex items-center justify-center h-32 text-gray-400">
-          <div className="text-center">
-            <div className="text-4xl mb-2">📋</div>
-            <p className="text-sm">Drag permissions here</p>
-          </div>
+        <div className="flex items-center justify-center h-32 text-gray-600">
+          <p className="text-sm font-medium">Drop permissions here</p>
         </div>
       )}
       
@@ -345,11 +341,10 @@ export const PermissionConsentManager: React.FC<PermissionConsentManagerProps> =
       <div className="bg-white rounded-lg shadow-lg p-6">
         <div className="mb-6">
           <h2 className="text-2xl font-bold text-gray-900 mb-2">
-            📋 Permission Consent Manager
+            Permission Consent Manager
           </h2>
-          <p className="text-gray-600">
-            Drag permissions from left to right to indicate your consent. 
-            Required permissions are marked and must be accepted.
+          <p className="text-gray-700 font-medium">
+            Drag and drop permissions to manage your consent preferences
           </p>
         </div>
 
@@ -383,22 +378,31 @@ export const PermissionConsentManager: React.FC<PermissionConsentManagerProps> =
 
         {/* Summary */}
         <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-          <h3 className="font-semibold text-gray-800 mb-2">Consent Summary</h3>
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <span className="font-medium">Required permissions:</span> {requiredPermissions.length}
-            </div>
-            <div>
-              <span className="font-medium">Optional permissions:</span> {optionalPermissions.length}
-            </div>
-            <div>
-              <span className="font-medium">Permissions granted:</span> {agreedPermissions.length}
-            </div>
-            <div>
-              <span className="font-medium">Pending permissions:</span> {availablePermissions.length}
-            </div>
+          <h3 className="font-semibold text-gray-900 mb-2">Consent Summary</h3>
+          <div className="space-y-2">
+            {agreedPermissions.length > 0 && (
+              <div>
+                <h4 className="text-sm font-medium text-green-800 mb-1">✅ Agreed Permissions ({agreedPermissions.length})</h4>
+                <ul className="text-xs text-green-700 space-y-1">
+                  {agreedPermissions.map(p => (
+                    <li key={p.id} className="font-medium">• {p.title}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            
+            {availablePermissions.length > 0 && (
+              <div>
+                <h4 className="text-sm font-medium text-gray-800 mb-1">⏳ Available Permissions ({availablePermissions.length})</h4>
+                <ul className="text-xs text-gray-700 space-y-1">
+                  {availablePermissions.map(p => (
+                    <li key={p.id} className="font-medium">• {p.title}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
-          
+
           {requiredPermissions.length > 0 && (
             <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
               <p className="text-sm text-red-800">

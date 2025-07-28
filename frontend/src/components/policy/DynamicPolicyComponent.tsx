@@ -291,7 +291,7 @@ export const DynamicPolicyComponent: React.FC<DynamicPolicyComponentProps> = ({
                 {...listeners}
                 onClick={(e) => e.stopPropagation()} // Prevent expand/collapse when dragging
               >
-                <span className="text-gray-400 hover:text-gray-600 cursor-grab active:cursor-grabbing">
+                <span className="text-gray-700 hover:text-gray-800 cursor-grab active:cursor-grabbing">
                   ⋮⋮
                 </span>
                 <span className="text-xl">{icon}</span>
@@ -313,7 +313,7 @@ export const DynamicPolicyComponent: React.FC<DynamicPolicyComponentProps> = ({
                   )}
                 </div>
                 
-                <div className="flex items-center gap-4 text-sm text-gray-600">
+                <div className="flex items-center gap-4 text-sm text-gray-800">
                   <span>Priority: #{component.priority}</span>
                   <span>Sensitivity: {sensitivityScore.toFixed(1)}/10</span>
                   <span>Impact: {privacyImpact.toFixed(1)}/10</span>
@@ -322,14 +322,21 @@ export const DynamicPolicyComponent: React.FC<DynamicPolicyComponentProps> = ({
             </div>
             
             <div className="flex items-center gap-2">
-              {/* Quiz indicator */}
-              {component.content.requires_quiz && (
+              {/* Quiz indicator - only show if quiz actually exists */}
+              {component.content.requires_quiz && component.content.quiz && (
                 <button
                   onClick={handleQuizClick}
                   className="text-purple-600 text-sm font-medium hover:text-purple-700 hover:bg-purple-50 px-2 py-1 rounded transition-colors"
                 >
                   🎯 Quiz
                 </button>
+              )}
+              
+              {/* Show quiz unavailable indicator if required but missing */}
+              {component.content.requires_quiz && !component.content.quiz && (
+                <span className="text-gray-500 text-xs px-2 py-1 bg-gray-100 rounded">
+                  ⚠️ Quiz Unavailable
+                </span>
               )}
               
               {/* Expansion arrow - clickable area */}
@@ -341,7 +348,7 @@ export const DynamicPolicyComponent: React.FC<DynamicPolicyComponentProps> = ({
                 <motion.span
                   animate={{ rotate: actuallyExpanded ? 180 : 0 }}
                   transition={{ duration: 0.2 }}
-                  className="text-gray-400 text-lg block"
+                  className="text-gray-700 text-lg block"
                 >
                   ▼
                 </motion.span>
@@ -356,26 +363,31 @@ export const DynamicPolicyComponent: React.FC<DynamicPolicyComponentProps> = ({
           <CardContent className="pt-0">
             <div className="space-y-2">
               {collapsedSummary.map((point, index) => (
-                <div key={index} className="flex items-start gap-2 text-sm text-gray-700">
-                  <span className="text-gray-400 mt-1">•</span>
+                <div key={index} className="flex items-start gap-2 text-sm text-gray-800">
+                  <span className="text-gray-600 mt-1">•</span>
                   <span>{point}</span>
                 </div>
               ))}
               
               {/* Quick stats */}
               <div className="flex flex-wrap gap-2 mt-3 pt-2 border-t border-gray-200">
-                <span className="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded-full">
+                <span className="px-2 py-1 text-xs bg-gray-100 text-gray-800 rounded-full font-medium">
                   {(component.content as any).reading_time || 1}min read
                 </span>
-                <span className="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded-full">
+                <span className="px-2 py-1 text-xs bg-gray-100 text-gray-800 rounded-full font-medium">
                   {component.content.user_control}/5 control
                 </span>
-                {component.content.requires_quiz && (
+                {component.content.requires_quiz && component.content.quiz && (
                   <span className="px-2 py-1 text-xs bg-purple-100 text-purple-600 rounded-full">
                     Interactive quiz
                   </span>
                 )}
-                <span className="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded-full">
+                {component.content.requires_quiz && !component.content.quiz && (
+                  <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-600 rounded-full">
+                    Quiz unavailable
+                  </span>
+                )}
+                <span className="px-2 py-1 text-xs bg-gray-100 text-gray-800 rounded-full font-medium">
                   Click to expand
                 </span>
               </div>
@@ -416,15 +428,15 @@ export const DynamicPolicyComponent: React.FC<DynamicPolicyComponentProps> = ({
             <div className="grid grid-cols-3 gap-3 text-sm">
               <div className="text-center p-2 bg-gray-50 rounded">
                 <div className="font-semibold text-orange-600">{sensitivityScore.toFixed(1)}</div>
-                <div className="text-xs text-gray-600">Sensitivity</div>
+                <div className="text-xs text-gray-800 font-medium">Sensitivity</div>
               </div>
               <div className="text-center p-2 bg-gray-50 rounded">
                 <div className="font-semibold text-red-600">{privacyImpact.toFixed(1)}</div>
-                <div className="text-xs text-gray-600">Privacy Impact</div>
+                <div className="text-xs text-gray-800 font-medium">Privacy Impact</div>
               </div>
               <div className="text-center p-2 bg-gray-50 rounded">
                 <div className="font-semibold text-blue-600">{component.content.user_control}/5</div>
-                <div className="text-xs text-gray-600">User Control</div>
+                <div className="text-xs text-gray-800 font-medium">User Control</div>
               </div>
             </div>
 
@@ -477,10 +489,11 @@ export const DynamicPolicyComponent: React.FC<DynamicPolicyComponentProps> = ({
               <div className="bg-purple-50 p-3 rounded-lg">
                 <h4 className="font-semibold text-purple-800 mb-2">🎯 Test Your Understanding</h4>
                 <p className="text-sm text-purple-700 mb-3">
-                  This section contains important information that affects your privacy. Take the quiz to ensure you understand the implications.
+                  This section contains important information that affects your privacy.
+                  {component.content.quiz ? ' Take the quiz to ensure you understand the implications.' : ' A quiz was recommended but is currently unavailable.'}
                 </p>
                 
-                {component.content.requires_quiz && component.content.quiz && (
+                {component.content.quiz ? (
                   <div className="mt-3">
                     <button
                       onClick={(e) => {
@@ -502,6 +515,12 @@ export const DynamicPolicyComponent: React.FC<DynamicPolicyComponentProps> = ({
                       </span>
                     )}
                   </div>
+                ) : (
+                  <div className="mt-3 p-2 bg-yellow-100 border border-yellow-300 rounded">
+                    <p className="text-sm text-yellow-800">
+                      ⚠️ Quiz generation failed. This section was flagged as high-risk and would benefit from interactive learning.
+                    </p>
+                  </div>
                 )}
               </div>
             )}
@@ -521,7 +540,7 @@ export const DynamicPolicyComponent: React.FC<DynamicPolicyComponentProps> = ({
             )}
 
             {/* Display Priority and Importance */}
-            <div className="flex justify-between items-center text-xs text-gray-500 pt-2 border-t border-gray-200">
+            <div className="flex justify-between items-center text-xs text-gray-700 pt-2 border-t border-gray-200">
               <span>Importance: {component.content.importance_score?.toFixed(2) || 'N/A'}</span>
               <span>Priority: #{component.priority}</span>
               <span>Entities: {component.metadata?.entities_count || 0}</span>
