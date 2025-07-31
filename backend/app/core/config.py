@@ -49,5 +49,7 @@ class Settings(BaseSettings):
         "case_sensitive": True,
     }
 
+    DEBUG_LOGGING: bool = True
+
 
 settings = Settings()

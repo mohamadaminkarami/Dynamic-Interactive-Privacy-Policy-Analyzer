@@ -85,20 +85,29 @@ export const StyledTextRenderer: React.FC<StyledTextRendererProps> = ({
     const combinedClass = `
       inline-block px-2 py-1 my-1 rounded-md transition-all duration-200
       ${highlightClass} ${textColorClass} ${fontWeightClass} ${emphasisClass}
-      ${segment.requires_attention ? 'hover:scale-105 cursor-help' : ''}
+      ${segment.requires_attention ? 'hover:shadow-lg hover:ring-2 hover:ring-orange-300 cursor-pointer relative group' : ''}
     `.trim();
 
     return (
       <span
         key={segment.id}
         className={combinedClass}
-        title={segment.requires_attention ? 
-          `High sensitivity (${segment.sensitivity_score.toFixed(1)}/10): ${segment.context_type}` : 
-          undefined}
       >
         {segment.text}
         {segment.requires_attention && (
-          <span className="ml-1 text-xs">⚠️</span>
+          <>
+            <span className="ml-1 text-xs">⚠️</span>
+            {/* Custom Tooltip */}
+            <div className="absolute top-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
+              <div className="font-medium">High Sensitivity ({segment.sensitivity_score.toFixed(1)}/10)</div>
+              <div className="text-gray-300">Type: {segment.context_type.replace('_', ' ')}</div>
+              {segment.key_terms && segment.key_terms.length > 0 && (
+                <div className="text-gray-300">Terms: {segment.key_terms.join(', ')}</div>
+              )}
+              {/* Tooltip Arrow */}
+              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+            </div>
+          </>
         )}
       </span>
     );
@@ -108,7 +117,7 @@ export const StyledTextRenderer: React.FC<StyledTextRendererProps> = ({
     <div className={`styled-text-container ${className}`}>
       {/* Styling Statistics */}
       {styledContent.high_sensitivity_count > 0 && (
-        <div className="mb-3 p-2 bg-red-50 border border-red-200 rounded-lg">
+        <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg relative">
           <div className="flex items-center gap-2 text-sm text-red-800">
             <span className="text-red-600">🚨</span>
             <span className="font-medium">

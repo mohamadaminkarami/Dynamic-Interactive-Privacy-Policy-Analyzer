@@ -3,10 +3,7 @@ import json
 import time
 from typing import Any, Dict, List, Optional
 
-from openai import OpenAI
-
 from app.core.config import settings
-
 from app.models import (
     ContentChunk,
     DataType,
@@ -14,6 +11,7 @@ from app.models import (
     InteractiveQuiz,
     LLMRequest,
     LLMResponse,
+    PolicySection,
     ProcessedSection,
     QuizOption,
     QuizQuestion,
@@ -23,8 +21,18 @@ from app.models import (
     UserImpactAnalysis,
     UserRight,
 )
+from app.utils.policy import estimate_tokens
+from openai import AsyncOpenAI
 
-client = OpenAI(api_key=settings.OPENAI_API_KEY)
+from .prompts import (
+    ANALYZE_TEXT_SEGMENTS_PROMPT,
+    ANALYZE_USER_IMPACT_PROMPT,
+    CALCULATE_IMPORTANCE_SCORE_PROMPT,
+    EXTRACT_ENTITIES_PROMPT,
+    GENERATE_QUIZ_PROMPT,
+    GENERATE_SECTION_SUMMARY_PROMPT,
+    PARSE_POLICY_PROMPT,
+)
 
 
 class PolicyAnalyzer:
@@ -33,70 +41,28 @@ class PolicyAnalyzer:
     def __init__(self):
         """Initialize the LLM service"""
         try:
-            # Configure OpenAI client (old format)
-
-            # Check if custom base URL is set (for LiteLLM proxy)
-            base_url = settings.LITELLM_PROXY_URL
-            if base_url:
-                # TODO: The 'openai.api_base' option isn't read in the client API. You will need to pass it when you instantiate the client, e.g. 'OpenAI(base_url=base_url)'
-                # openai.api_base = base_url
-                print(f"🔗 Using custom OpenAI base URL: {base_url}")
-
+            self.openai_client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
         except Exception as e:
             raise ValueError(f"Failed to configure OpenAI client: {str(e)}")
 
         self.primary_model = settings.OPENAI_MODEL_PRIMARY
         self.secondary_model = settings.OPENAI_MODEL_SECONDARY
 
-        # Rate limiting
-        self.request_times: List[float] = []
-        self.max_requests_per_minute = settings.MAX_REQUESTS_PER_MINUTE
-
-    async def _rate_limit_check(self) -> None:
-        """Check and enforce rate limiting"""
-        current_time = time.time()
-
-        # Remove requests older than 1 minute
-        self.request_times = [t for t in self.request_times if current_time - t < 60]
-
-        # Wait if we've hit the rate limit
-        if len(self.request_times) >= self.max_requests_per_minute:
-            sleep_time = 60 - (current_time - self.request_times[0])
-            if sleep_time > 0:
-                await asyncio.sleep(sleep_time)
-
-        self.request_times.append(current_time)
-
     async def _call_llm(self, request: LLMRequest) -> LLMResponse:
-        """Make a call to the LLM API"""
-        await self._rate_limit_check()
+        """Call the LLM with the given prompt"""
+
+        if not self.openai_client:
+            # Return empty response if no API key configured
+            return "{}"
 
         start_time = time.time()
-
         try:
-            # Prepare the chat completion request
-            messages = [
-                {"role": "system", "content": self._get_system_prompt()},
-                {"role": "user", "content": request.prompt},
-            ]
-
-            # Prepare parameters for the old OpenAI client
-            params = {
-                "model": request.model,
-                "messages": messages,
-                "temperature": request.temperature,
-                "max_tokens": request.max_tokens,
-            }
-
-            # Add response format if specified (note: older client may not support this)
-            if request.response_format == "json":
-                # For older client, we'll add it to the prompt instead
-                messages[-1][
-                    "content"
-                ] += "\n\nIMPORTANT: You must respond with valid JSON format only. No additional text or explanation."
-
-            # Make the API call using the old client
-            response = client.chat.completions.create(**params)
+            response = await self.openai_client.chat.completions.create(
+                model=request.model,
+                messages=[{"role": "user", "content": request.prompt}],
+                temperature=request.temperature,
+                max_tokens=request.max_tokens,
+            )
 
             processing_time = time.time() - start_time
 
@@ -106,48 +72,22 @@ class PolicyAnalyzer:
                 tokens_used=response.usage.total_tokens,
                 processing_time=processing_time,
             )
-
         except Exception as e:
-            raise Exception(f"LLM API call failed: {str(e)}")
+            # If OpenAI fails, return empty/default response
+            print(f"OpenAI API error: {e}")
+            return "{}"
 
-    def _get_system_prompt(self) -> str:
-        """Get the system prompt for privacy policy processing"""
-        return """You are a privacy law expert and user advocate specialized in analyzing privacy policies. 
-        Your role is to:
-        1. Extract key information from privacy policies
-        2. Assess user impact and risks
-        3. Identify user rights and company obligations
-        4. Provide clear, accurate analysis focused on user protection
-        
-        Always be precise, avoid assumptions, and flag any ambiguities.
-        When providing JSON responses, ensure valid JSON format."""
-
-    async def analyze_structure(self, content: str) -> Dict[str, Any]:
-        """Analyze the structure of a privacy policy section"""
-        prompt = f"""
-        Analyze this privacy policy section and identify its structure:
-        
-        {content}
-        
-        Provide a JSON response with:
-        {{
-            "section_type": "definition/rights/obligations/data_collection/third_parties/other",
-            "main_topics": ["list of main topics covered"],
-            "subsections": ["list of subsections if any"],
-            "legal_references": ["any legal framework references"],
-            "complexity_level": "simple/moderate/complex"
-        }}
-        """
+    async def _parse_sections(self, content: str) -> List[ContentChunk]:
+        """Parse privacy policy content into logical sections"""
 
         request = LLMRequest(
-            prompt=prompt,
+            prompt=PARSE_POLICY_PROMPT.format(content=content),
             model=self.secondary_model,
             temperature=0.1,
-            max_tokens=500,
-            response_format="json",
         )
 
         response = await self._call_llm(request)
+
         try:
             content = response.content.strip()
             # Remove markdown code blocks if present
@@ -157,48 +97,39 @@ class PolicyAnalyzer:
                 content = content[:-3]  # Remove ```
             content = content.strip()
 
-            return json.loads(content)
-        except json.JSONDecodeError as e:
-            # If JSON parsing fails, return a default structure
-            print(f"⚠️  JSON parsing failed: {e}")
-            print(f"Raw response: {response.content}")
-            return {
-                "section_type": "other",
-                "main_topics": ["analysis_failed"],
-                "subsections": [],
-                "legal_references": [],
-                "complexity_level": "moderate",
-            }
+            sections = json.loads(content)
+
+            return [
+                ContentChunk(
+                    id=f"chunk_{i+1}",
+                    content=section["content"],
+                    section_title=section["title"],
+                    position=i + 1,
+                    tokens=estimate_tokens(section["content"]),
+                )
+                for i, section in enumerate(sections)
+            ]
+
+        except (json.JSONDecodeError, KeyError, TypeError) as e:
+            print(f"⚠️ Section parsing failed: {e}")
+            return []  # Return empty list if parsing fails
 
     async def extract_entities(self, content: str) -> List[ExtractedEntity]:
+        if settings.DEBUG_LOGGING:
+            print(f"🔄 Extracting entities from content")
+
         """Extract entities from privacy policy content"""
-        prompt = f"""
-        Extract key entities from this privacy policy section:
-        
-        {content}
-        
-        Provide a JSON response with an array of entities:
-        {{
-            "entities": [
-                {{
-                    "entity_type": "data_type/user_right/company_obligation/third_party/legal_basis",
-                    "value": "the extracted value",
-                    "context": "surrounding context where found",
-                    "confidence": 0.95
-                }}
-            ]
-        }}
-        """
+        prompt = EXTRACT_ENTITIES_PROMPT.format(content=content)
 
         request = LLMRequest(
             prompt=prompt,
             model=self.secondary_model,
             temperature=0.1,
-            max_tokens=800,
-            response_format="json",
         )
 
         response = await self._call_llm(request)
+        if settings.DEBUG_LOGGING:
+            print(f"🔄 Extracted entities")
         try:
             content = response.content.strip()
             # Remove markdown code blocks if present
@@ -216,65 +147,28 @@ class PolicyAnalyzer:
 
             return entities
         except (json.JSONDecodeError, KeyError, TypeError) as e:
-            print(f"⚠️  Entity extraction failed: {e}")
+            print(f"⚠️ Entity extraction failed: {e}")
             print(f"Raw response: {response.content}")
             return []  # Return empty list if parsing fails
 
     async def analyze_user_impact(self, content: str) -> UserImpactAnalysis:
         """Analyze the impact of a privacy policy section on users with numerical scoring"""
-        prompt = f"""
-        Analyze how this privacy policy section affects users with detailed numerical scoring:
-        
-        {content}
-        
-        Provide a JSON response:
-        {{
-            "risk_level": "high/medium/low",
-            "sensitivity_score": 7.5,
-            "privacy_impact_score": 8.0,
-            "data_sharing_risk": 6.5,
-            "user_control": 3,
-            "transparency_score": 4,
-            "key_concerns": ["list of key concerns for users"],
-            "actionable_rights": ["access", "deletion", "opt_out", etc.],
-            "engagement_level": "standard/interactive/quiz",
-            "requires_quiz": true,
-            "requires_visual_aid": false,
-            "text_emphasis_level": 4,
-            "highlight_color": "neutral/yellow/orange/red",
-            "font_weight": "normal/medium/bold"
-        }}
-        
-        Scoring Guidelines (0-10):
-        - sensitivity_score: How sensitive/concerning is this content to users?
-        - privacy_impact_score: How much does this impact user privacy?
-        - data_sharing_risk: Risk of data being shared/misused
-        
-        UI Enhancement Rules:
-        - engagement_level: "quiz" for scores 8+, "interactive" for 6-7, "standard" for <6
-        - requires_quiz: true for sensitivity_score >= 8.0
-        - requires_visual_aid: true for privacy_impact_score >= 8.0
-        - text_emphasis_level: 1-5 based on importance (5 = highest emphasis)
-        - highlight_color: "red" for 8+, "orange" for 6-7, "yellow" for 4-5, "neutral" for <4
-        - font_weight: "bold" for 8+, "medium" for 6-7, "normal" for <6
-        
-        Consider:
-        - Real-world impact on users
-        - Level of control users have
-        - Clarity of information
-        - Potential risks and benefits
-        - Need for user attention and engagement
-        """
+        if settings.DEBUG_LOGGING:
+            print(f"🔄 Analyzing user impact")
+
+        prompt = ANALYZE_USER_IMPACT_PROMPT.format(content=content)
 
         request = LLMRequest(
             prompt=prompt,
             model=self.primary_model,
             temperature=0.1,
             max_tokens=800,
-            response_format="json",
         )
 
         response = await self._call_llm(request)
+        if settings.DEBUG_LOGGING:
+            print(f"🔄 Analyzed user impact")
+
         try:
             content = response.content.strip()
             # Remove markdown code blocks if present
@@ -352,8 +246,7 @@ class PolicyAnalyzer:
 
             return UserImpactAnalysis(**data)
         except (json.JSONDecodeError, KeyError, TypeError) as e:
-            print(f"⚠️  User impact analysis failed: {e}")
-            print(f"Raw response: {response.content}")
+            print(f"⚠️ User impact analysis failed: {e}")
             # Return default analysis with new fields
             return UserImpactAnalysis(
                 risk_level=RiskLevel.MEDIUM,
@@ -374,50 +267,48 @@ class PolicyAnalyzer:
 
     async def generate_summary(self, content: str) -> str:
         """Generate a user-friendly summary of a privacy policy section"""
-        prompt = f"""
-        Create a clear, user-friendly summary of this privacy policy section:
-        
-        {content}
-        
-        The summary should:
-        - Be written in plain language
-        - Highlight key points that affect users
-        - Be concise but comprehensive
-        - Focus on what users need to know
-        """
+        if settings.DEBUG_LOGGING:
+            print(f"🔄 Generating summary")
+
+        prompt = GENERATE_SECTION_SUMMARY_PROMPT.format(content=content)
 
         request = LLMRequest(
-            prompt=prompt, model=self.primary_model, temperature=0.2, max_tokens=400
+            prompt=prompt,
+            model=self.primary_model,
+            temperature=0.2,
+            max_tokens=1000,
         )
 
         response = await self._call_llm(request)
+        if settings.DEBUG_LOGGING:
+            print(f"🔄 Summary generated")
+
         return response.content.strip()
 
     async def calculate_importance_score(
         self, content: str, user_impact: UserImpactAnalysis
     ) -> float:
         """Calculate importance score for ranking sections"""
-        prompt = f"""
-        Calculate an importance score (0.0 to 1.0) for this privacy policy section:
-        
-        Content: {content}
-        User Impact: Risk Level: {user_impact.risk_level}, User Control: {user_impact.user_control}
-        
-        Consider:
-        - User rights and freedoms impact
-        - Data sensitivity
-        - Legal obligations
-        - Potential consequences
-        - User decision-making needs
-        
-        Respond with just a number between 0.0 and 1.0.
-        """
+        if settings.DEBUG_LOGGING:
+            print(f"🔄 Calculating importance score")
+
+        prompt = CALCULATE_IMPORTANCE_SCORE_PROMPT.format(
+            content=content,
+            risk_level=user_impact.risk_level,
+            user_control=user_impact.user_control,
+        )
 
         request = LLMRequest(
-            prompt=prompt, model=self.primary_model, temperature=0.1, max_tokens=50
+            prompt=prompt,
+            model=self.primary_model,
+            temperature=0.1,
+            max_tokens=50,
         )
 
         response = await self._call_llm(request)
+        if settings.DEBUG_LOGGING:
+            print(f"🔄 Importance score calculated")
+
         try:
             score = float(response.content.strip())
             return max(0.0, min(1.0, score))  # Ensure it's between 0 and 1
@@ -472,6 +363,7 @@ class PolicyAnalyzer:
                 entities, user_impact, summary = await asyncio.gather(
                     entities_task, impact_task, summary_task
                 )
+
             except Exception as e:
                 print(f"⚠️  Error in parallel processing for chunk {chunk.id}: {e}")
                 # Try to recover with individual calls
@@ -606,9 +498,10 @@ class PolicyAnalyzer:
 
             # Calculate section statistics
             word_count = len(chunk.content.split())
-            reading_time = max(
-                1, word_count // 3
-            )  # ~3 words per second for careful reading
+            # Reading time in minutes: ~180 words per minute for careful privacy policy reading
+            reading_time = max(1, round(word_count / 180))  # Reading time in minutes
+
+            print(f"✅ Processed chunk {chunk.id}: {chunk.section_title}")
 
             return ProcessedSection(
                 id=chunk.id,
@@ -661,56 +554,23 @@ class PolicyAnalyzer:
         self, content: str, overall_sensitivity: float
     ) -> StyledContent:
         """Analyze text and create segments with sensitivity-based styling"""
-        prompt = f"""
-        Analyze this privacy policy text and break it into segments with sensitivity scoring for text visualization:
-        
-        {content}
-        
-        Overall Content Sensitivity: {overall_sensitivity}/10
-        
-        Create segments that should have different visual emphasis. Focus on:
-        - Data collection statements
-        - Data sharing/selling mentions
-        - User rights and options
-        - Third-party partnerships
-        - Data retention policies
-        - Contact information
-        
-        Provide a JSON response:
-        {{
-            "segments": [
-                {{
-                    "text": "specific text segment",
-                    "sensitivity_score": 7.5,
-                    "context_type": "data_collection/sharing/rights/retention/contact/general",
-                    "key_terms": ["personal data", "third party"],
-                    "highlight_color": "red/orange/yellow/blue/neutral",
-                    "text_color": "default/red/orange/blue",
-                    "font_weight": "normal/medium/bold",
-                    "text_emphasis": 3,
-                    "requires_attention": true
-                }}
-            ]
-        }}
-        
-        Guidelines:
-        - Break text into logical segments (sentences or phrases)
-        - High sensitivity (8+): red highlights, bold text
-        - Medium sensitivity (5-7): orange/yellow highlights, medium weight
-        - Low sensitivity (<5): neutral/blue highlights, normal weight
-        - Keep segments readable and not overwhelming
-        - Focus on parts that users need to pay attention to
-        """
+        if settings.DEBUG_LOGGING:
+            print(f"🔄 Analyzing text segments")
+
+        prompt = ANALYZE_TEXT_SEGMENTS_PROMPT.format(
+            content=content, overall_sensitivity=overall_sensitivity
+        )
 
         request = LLMRequest(
             prompt=prompt,
             model=self.primary_model,
             temperature=0.1,
-            max_tokens=1500,
-            response_format="json",
         )
 
         response = await self._call_llm(request)
+        if settings.DEBUG_LOGGING:
+            print(f"🔄 Text segments analyzed")
+
         try:
             content_response = response.content.strip()
             # Remove markdown code blocks if present
@@ -816,7 +676,6 @@ class PolicyAnalyzer:
 
         except (json.JSONDecodeError, KeyError, TypeError) as e:
             print(f"⚠️  Text segmentation failed: {e}")
-            print(f"Raw response: {response.content}")
 
             # Return basic segmentation as fallback
             return StyledContent(
@@ -838,45 +697,20 @@ class PolicyAnalyzer:
     ) -> Optional[InteractiveQuiz]:
         """Generate an interactive quiz for high-sensitivity content"""
 
+        if settings.DEBUG_LOGGING:
+            print(f"🔄 Generating quiz for section")
+
         # FIXED: Use the same logic as should_generate_quiz instead of hard cutoff
         # This was the main bug - mismatch between should_generate and generate logic
         if sensitivity_score < 7.0:  # Lower threshold to match should_generate_quiz
             return None
 
         # Create quiz generation prompt
-        prompt = f"""
-        You are an expert privacy policy educator. Create an interactive quiz to help users understand the most concerning aspects of this privacy policy section.
-
-        SECTION TITLE: {section_title}
-        SECTION CONTENT: {section_content}
-        SENSITIVITY SCORE: {sensitivity_score}/10
-
-        Create a quiz with 2-4 questions that test understanding of:
-        1. Key privacy risks and implications
-        2. User rights and options
-        3. Data handling practices
-        4. Potential consequences for users
-
-        REQUIREMENTS:
-        - Focus on the most concerning privacy aspects
-        - Include multiple choice questions with 3-4 options each
-        - Provide detailed explanations for correct answers
-        - Make questions educational, not just factual
-        - Include real-world implications
-        - Ensure questions help users make informed decisions
-
-        QUESTION TYPES:
-        - Multiple choice (primary)
-        - True/false (for clear-cut facts)
-        - Fill-in-the-blank (for key terms)
-
-        DIFFICULTY LEVELS:
-        - Easy: Basic understanding of key concepts
-        - Medium: Implications and consequences
-        - Hard: Nuanced understanding and decision-making
-
-        Response format: JSON with quiz structure
-        """
+        prompt = GENERATE_QUIZ_PROMPT.format(
+            section_title=section_title,
+            section_content=section_content,
+            sensitivity_score=sensitivity_score,
+        )
 
         try:
             # Use the existing LLM service infrastructure
@@ -884,11 +718,12 @@ class PolicyAnalyzer:
                 prompt=prompt,
                 model=self.primary_model,
                 temperature=0.7,
-                max_tokens=2000,
-                response_format="json",
             )
 
             response = await self._call_llm(request)
+
+            if settings.DEBUG_LOGGING:
+                print(f"🔄 Quiz generated")
 
             # Parse the JSON response
             content_response = response.content.strip()
@@ -1080,11 +915,10 @@ class PolicyAnalyzer:
             return quiz
 
         except json.JSONDecodeError as e:
-            print(f"⚠️  JSON parsing error for section '{section_title}': {e}")
-            print(f"   Raw response: {response.content[:200]}...")
+            print(f"⚠️ JSON parsing error for section '{section_title}': {e}")
             return None
         except Exception as e:
-            print(f"⚠️  Error generating quiz for section '{section_title}': {e}")
+            print(f"⚠️ Error generating quiz for section '{section_title}': {e}")
             return None
 
     def should_generate_quiz(self, user_impact: UserImpactAnalysis) -> bool:

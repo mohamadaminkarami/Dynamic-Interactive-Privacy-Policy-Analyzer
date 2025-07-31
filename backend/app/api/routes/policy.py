@@ -2,14 +2,15 @@
 Policy analysis API routes
 """
 
+import asyncio
 import time
 import uuid
 from datetime import datetime
 
 from app.api.schemas import (
     HealthResponse,
-    PolicyProcessingRequest,
-    PolicyProcessingResponse,
+    PolicyAnalyzeRequest,
+    PolicyAnalyzeResponse,
 )
 from app.core.config import settings
 from app.utils.policy import (
@@ -19,7 +20,7 @@ from app.utils.policy import (
     calculate_overall_sensitivity,
     calculate_readability_score,
     calculate_user_friendliness,
-    chunk_content,
+    chunk_content_offline,
     generate_ui_components,
 )
 from fastapi import APIRouter, HTTPException
@@ -33,11 +34,11 @@ router = APIRouter()
 
 @router.post(
     "/analyze",
-    response_model=PolicyProcessingResponse,
+    response_model=PolicyAnalyzeResponse,
     summary="Analyze privacy policy content",
     description="Process privacy policy content and generate AI-powered analysis with UI components",
 )
-async def analyze_policy(request: PolicyProcessingRequest):
+async def analyze_policy(request: PolicyAnalyzeRequest):
     """
     Analyze a privacy policy and generate user-centric dynamic UI components
     """
@@ -52,10 +53,9 @@ async def analyze_policy(request: PolicyProcessingRequest):
                 detail="Policy content too short. Minimum 100 characters required.",
             )
 
+        print(f"🔄 starting chunking")
         # Step 1: Chunk the content
-        chunks = chunk_content(
-            request.policy_content, max_chunk_size=request.max_chunk_size
-        )
+        chunks = await policy_analyzer._parse_sections(content=request.policy_content)
 
         if not chunks:
             raise HTTPException(
@@ -66,17 +66,28 @@ async def analyze_policy(request: PolicyProcessingRequest):
         # Step 2: Process chunks in parallel
         print(f"🔄 Processing {len(chunks)} chunks for {request.company_name}")
 
-        # Process chunks concurrently (but respect rate limits)
-        processed_sections = []
-        for chunk in chunks:
+        # Process all chunks in parallel for maximum efficiency
+        async def process_chunk_safe(chunk):
+            """Process a chunk with error handling"""
             try:
                 section = await policy_analyzer.process_section(chunk)
-                processed_sections.append(section)
                 print(f"✅ Processed chunk {chunk.position}: {section.title}")
+                return section
             except Exception as e:
                 print(f"⚠️  Failed to process chunk {chunk.position}: {str(e)}")
-                # Continue with other chunks
-                continue
+                return None  # Return None for failed chunks
+        
+        # Create tasks for all chunks to run in parallel
+        chunk_tasks = [process_chunk_safe(chunk) for chunk in chunks]
+        
+        # Wait for all chunks to complete in parallel
+        results = await asyncio.gather(*chunk_tasks, return_exceptions=True)
+        
+        # Filter out None results (failed chunks) and exceptions
+        processed_sections = [
+            result for result in results 
+            if result is not None and not isinstance(result, Exception)
+        ]
 
         if not processed_sections:
             raise HTTPException(
@@ -111,9 +122,9 @@ async def analyze_policy(request: PolicyProcessingRequest):
         document = PrivacyPolicyDocument(
             id=processing_id,
             company_name=request.company_name,
-            title=request.policy_title,
-            version=request.version,
-            effective_date=request.effective_date,
+            title="Privacy Policy",
+            version="",
+            effective_date=datetime.now(),
             sections=processed_sections,
             overall_risk_level=overall_risk,
             user_friendliness_score=user_friendliness,
@@ -138,7 +149,7 @@ async def analyze_policy(request: PolicyProcessingRequest):
         print(f"🎉 Policy processing completed in {processing_time:.2f}s")
         print(f"📊 Generated {len(ui_components)} UI components")
 
-        return PolicyProcessingResponse(
+        return PolicyAnalyzeResponse(
             processing_id=processing_id,
             document=document,
             ui_components=ui_components,
@@ -181,5 +192,4 @@ async def available_models():
     return {
         "primary_model": policy_analyzer.primary_model,
         "secondary_model": policy_analyzer.secondary_model,
-        "rate_limit": policy_analyzer.max_requests_per_minute,
     }

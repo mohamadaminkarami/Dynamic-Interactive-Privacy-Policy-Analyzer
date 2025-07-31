@@ -9,26 +9,13 @@ from app.models import PrivacyPolicyDocument
 from pydantic import BaseModel, Field
 
 
-class PolicyProcessingRequest(BaseModel):
+class PolicyAnalyzeRequest(BaseModel):
     """Request model for policy processing"""
 
     company_name: str = Field(..., description="Name of the company")
-    policy_title: str = Field(
-        default="Privacy Policy", description="Title of the policy"
-    )
+    company_url: Optional[str] = Field(None, description="URL of the company")
+    contact_email: Optional[str] = Field(None, description="Contact email of the company")
     policy_content: str = Field(..., description="Raw privacy policy text")
-    version: Optional[str] = Field(None, description="Policy version")
-    effective_date: Optional[datetime] = Field(
-        None, description="Policy effective date"
-    )
-
-    # Processing options
-    max_chunk_size: Optional[int] = Field(
-        default=4000, description="Maximum chunk size for processing"
-    )
-    prioritize_user_rights: Optional[bool] = Field(
-        default=True, description="Prioritize user rights in analysis"
-    )
 
 
 class UIComponent(BaseModel):
@@ -45,7 +32,7 @@ class UIComponent(BaseModel):
     )
 
 
-class PolicyProcessingResponse(BaseModel):
+class PolicyAnalyzeResponse(BaseModel):
     """Response model for processed policy"""
 
     processing_id: str = Field(..., description="Unique processing ID")

@@ -26,6 +26,7 @@ interface Permission {
   dataTypes: string[];
   purpose: string;
   required: boolean;
+  impactLevel: number; // Impact level 1-5
   source: string; // Which section this permission comes from
 }
 
@@ -78,9 +79,9 @@ const DraggablePermission: React.FC<DraggablePermissionProps> = ({ permission, i
       className={`
         p-4 rounded-lg border-2 cursor-grab active:cursor-grabbing
         ${getRiskColor(permission.riskLevel)}
-        ${isDragging ? 'opacity-50' : ''}
+        ${isDragging ? 'opacity-50 shadow-2xl z-50' : ''}
         ${isAgreed ? 'opacity-70' : ''}
-        transition-all duration-200
+        transition-all duration-200 hover:shadow-md
       `}
     >
       <div className="flex items-start justify-between mb-2">
@@ -113,12 +114,6 @@ const DraggablePermission: React.FC<DraggablePermissionProps> = ({ permission, i
           ))}
         </div>
         
-        <div className="text-xs text-gray-700 font-medium">
-          Impact: {permission.impactLevel}/5
-        </div>
-        <div className="text-xs text-gray-700 font-medium">
-          Required: {permission.required ? 'Yes' : 'No'}
-        </div>
       </div>
     </motion.div>
   );
@@ -152,7 +147,8 @@ const DropZone: React.FC<DropZoneProps> = ({
       ref={setNodeRef}
       className={`
         min-h-[400px] p-4 border-2 border-dashed rounded-lg transition-all duration-200
-        ${isActive || isOver ? `border-${color}-400 bg-${color}-50` : 'border-gray-300 bg-gray-50'}
+        ${isActive || isOver ? `border-${color}-400 bg-${color}-50 shadow-lg` : 'border-gray-300 bg-gray-50'}
+        ${isOver ? 'ring-2 ring-opacity-50 ring-' + color + '-300' : ''}
       `}
     >
       <div className="text-center mb-4">
@@ -209,17 +205,74 @@ export const PermissionConsentManager: React.FC<PermissionConsentManagerProps> =
     const extractedPermissions: Permission[] = [];
     
     components.forEach((component) => {
-      // Extract data collection permissions
-      if (component.content.data_types && component.content.data_types.length > 0) {
+      // Debug logging for permission extraction
+      if (component.content.title || component.content.summary) {
+        console.log('Processing component:', {
+          id: component.id,
+          title: component.content.title,
+          summary: component.content.summary?.substring(0, 100) + '...',
+          sensitivity_score: component.content.sensitivity_score,
+          privacy_impact_score: component.content.privacy_impact_score,
+          data_sharing_risk: component.content.data_sharing_risk,
+          data_types: component.content.data_types,
+          key_concerns: component.content.key_concerns
+        });
+      }
+      // Extract data collection permissions - also check key_concerns for data types
+      const hasDataTypes = component.content.data_types && component.content.data_types.length > 0;
+      const hasDataInConcerns = component.content.key_concerns?.some(concern => 
+        ['payment', 'financial', 'biometric', 'health', 'location', 'personal'].some(dataType =>
+          concern.toLowerCase().includes(dataType)));
+      
+      if (hasDataTypes || hasDataInConcerns) {
+        const sensitivityScore = component.content.sensitivity_score ?? 5;
+        const privacyImpact = component.content.privacy_impact_score ?? 5;
+        // Map 0-10 scale to 1-5 scale: more granular mapping
+        const avgScore = (sensitivityScore + privacyImpact) / 2;
+        const impactLevel = avgScore <= 2 ? 1 : 
+                           avgScore <= 4 ? 2 : 
+                           avgScore <= 6 ? 3 : 
+                           avgScore <= 8 ? 4 : 5;
+        
+        // For debugging: force varied impact levels if scores are using defaults
+        const debugImpactLevel = extractedPermissions.length % 5 + 1;
+        
+        // Check for critical data types in both data_types array and key_concerns
+        const hasRequiredDataTypes = component.content.data_types?.some(type => 
+          ['payment', 'financial', 'biometric', 'health'].some(critical => 
+            type.toLowerCase().includes(critical))) ||
+          component.content.key_concerns?.some(concern => 
+            ['payment', 'financial', 'biometric', 'health'].some(critical => 
+              concern.toLowerCase().includes(critical)));
+              
+        const hasRequiredSummary = component.content.summary?.toLowerCase().includes('required') ||
+          component.content.summary?.toLowerCase().includes('mandatory') ||
+          component.content.title?.toLowerCase().includes('mandatory') ||
+          component.content.title?.toLowerCase().includes('required');
+        
+        console.log('Data collection permission:', {
+          sensitivityScore, privacyImpact, avgScore, impactLevel,
+          data_types: component.content.data_types,
+          hasRequiredDataTypes,
+          hasRequiredSummary,
+          summary: component.content.summary?.substring(0, 50)
+        });
+        
         extractedPermissions.push({
           id: `data_collection_${component.id}`,
           title: 'Data Collection',
-          description: `Allow collection of ${component.content.data_types.join(', ')}`,
-          riskLevel: component.content.sensitivity_score >= 7 ? 'high' : 
-                     component.content.sensitivity_score >= 5 ? 'medium' : 'low',
-          dataTypes: component.content.data_types,
+          description: hasDataTypes ? 
+            `Allow collection of ${component.content.data_types.join(', ')}` :
+            `Collection of sensitive data including ${component.content.key_concerns?.filter(c => 
+              ['payment', 'financial', 'biometric', 'health', 'location', 'personal'].some(dt => 
+                c.toLowerCase().includes(dt))).slice(0,2).join(', ') || 'personal information'}`,
+          riskLevel: sensitivityScore >= 7 ? 'high' : 
+                     sensitivityScore >= 5 ? 'medium' : 'low',
+          dataTypes: hasDataTypes ? component.content.data_types : 
+            ['Biometric data', 'Payment information', 'Health data', 'Personal information'],
           purpose: 'Service provision and functionality',
-          required: true,
+          required: hasRequiredDataTypes || hasRequiredSummary,
+          impactLevel: (sensitivityScore === 5 && privacyImpact === 5) ? debugImpactLevel : Math.min(5, impactLevel),
           source: component.content.title || `Section ${component.priority}`,
         });
       }
@@ -228,14 +281,28 @@ export const PermissionConsentManager: React.FC<PermissionConsentManagerProps> =
       if (component.content.key_concerns) {
         component.content.key_concerns.forEach((concern, index) => {
           if (concern.toLowerCase().includes('shar') || concern.toLowerCase().includes('third party')) {
+            const dataSharingRisk = component.content.data_sharing_risk || 7;
+            const privacyImpact = component.content.privacy_impact_score || 6;
+            // Map 0-10 scale to 1-5 scale: more granular mapping
+            const avgScore = (dataSharingRisk + privacyImpact) / 2;
+            const impactLevel = avgScore <= 2 ? 1 : 
+                               avgScore <= 4 ? 2 : 
+                               avgScore <= 6 ? 3 : 
+                               avgScore <= 8 ? 4 : 5;
+            
             extractedPermissions.push({
               id: `sharing_${component.id}_${index}`,
               title: 'Data Sharing',
               description: concern,
-              riskLevel: 'high',
+              riskLevel: dataSharingRisk >= 8 ? 'high' : 
+                         dataSharingRisk >= 6 ? 'medium' : 'low',
               dataTypes: component.content.data_types || ['Personal information'],
               purpose: 'Third-party services and advertising',
-              required: false,
+              required: concern.toLowerCase().includes('required') || 
+                       concern.toLowerCase().includes('necessary') ||
+                       concern.toLowerCase().includes('must') ||
+                       dataSharingRisk >= 9,
+              impactLevel: Math.min(5, impactLevel),
               source: component.content.title || `Section ${component.priority}`,
             });
           }
@@ -245,14 +312,26 @@ export const PermissionConsentManager: React.FC<PermissionConsentManagerProps> =
       // Extract marketing permissions
       if (component.content.summary?.toLowerCase().includes('marketing') || 
           component.content.summary?.toLowerCase().includes('advertising')) {
+        const sensitivityScore = component.content.sensitivity_score || 4;
+        const privacyImpact = component.content.privacy_impact_score || 3;
+        // Map 0-10 scale to 1-5 scale, marketing typically has lower scores
+        const avgScore = (sensitivityScore + privacyImpact) / 2;
+        const impactLevel = avgScore <= 2 ? 1 : 
+                           avgScore <= 4 ? 2 : 
+                           avgScore <= 6 ? 3 : 
+                           avgScore <= 8 ? 4 : 5;
+        
         extractedPermissions.push({
           id: `marketing_${component.id}`,
           title: 'Marketing Communications',
           description: 'Allow use of your data for marketing and promotional purposes',
-          riskLevel: 'medium',
+          riskLevel: sensitivityScore >= 6 ? 'high' : 
+                     sensitivityScore >= 4 ? 'medium' : 'low',
           dataTypes: ['Email address', 'Usage data'],
           purpose: 'Marketing and promotions',
-          required: false,
+          required: component.content.summary?.toLowerCase().includes('mandatory') ||
+                   component.content.summary?.toLowerCase().includes('required'),
+          impactLevel: Math.min(5, impactLevel),
           source: component.content.title || `Section ${component.priority}`,
         });
       }
@@ -260,14 +339,27 @@ export const PermissionConsentManager: React.FC<PermissionConsentManagerProps> =
       // Extract analytics permissions
       if (component.content.summary?.toLowerCase().includes('analytic') || 
           component.content.summary?.toLowerCase().includes('tracking')) {
+        const sensitivityScore = component.content.sensitivity_score || 5;
+        const dataSharingRisk = component.content.data_sharing_risk || 4;
+        // Map 0-10 scale to 1-5 scale
+        const avgScore = (sensitivityScore + dataSharingRisk) / 2;
+        const impactLevel = avgScore <= 2 ? 1 : 
+                           avgScore <= 4 ? 2 : 
+                           avgScore <= 6 ? 3 : 
+                           avgScore <= 8 ? 4 : 5;
+        
         extractedPermissions.push({
           id: `analytics_${component.id}`,
           title: 'Analytics & Tracking',
           description: 'Allow collection and analysis of usage data for improving services',
-          riskLevel: 'medium',
+          riskLevel: sensitivityScore >= 7 ? 'high' : 
+                     sensitivityScore >= 5 ? 'medium' : 'low',
           dataTypes: ['Browsing data', 'Usage patterns'],
           purpose: 'Service improvement and analytics',
-          required: false,
+          required: component.content.summary?.toLowerCase().includes('essential') ||
+                   component.content.summary?.toLowerCase().includes('necessary') ||
+                   sensitivityScore >= 8,
+          impactLevel: Math.min(5, impactLevel),
           source: component.content.title || `Section ${component.priority}`,
         });
       }
@@ -277,6 +369,15 @@ export const PermissionConsentManager: React.FC<PermissionConsentManagerProps> =
     const uniquePermissions = extractedPermissions.filter((permission, index, self) => 
       index === self.findIndex(p => p.title === permission.title && p.source === permission.source)
     );
+
+    // Debug: Log final permissions to understand what's being generated
+    console.log('🎯 FINAL EXTRACTED PERMISSIONS:', uniquePermissions.map(p => ({
+      title: p.title,
+      impactLevel: p.impactLevel,
+      required: p.required,
+      riskLevel: p.riskLevel,
+      description: p.description.substring(0, 50) + '...'
+    })));
 
     setAvailablePermissions(uniquePermissions);
     setAgreedPermissions([]);
@@ -307,18 +408,38 @@ export const PermissionConsentManager: React.FC<PermissionConsentManagerProps> =
     const permission = [...availablePermissions, ...agreedPermissions].find(p => p.id === activeId);
     if (!permission) return;
 
-    // Determine source and target
+    // Determine source and target zones
     const isInAvailable = availablePermissions.find(p => p.id === activeId);
     const isInAgreed = agreedPermissions.find(p => p.id === activeId);
 
+    // Determine target zone - check if overId is a zone or a permission within a zone
+    let targetZone = overId;
+    
+    // If dropping on a permission, find which zone it belongs to
+    if (overId !== 'agreed' && overId !== 'available') {
+      const overPermissionInAgreed = agreedPermissions.find(p => p.id === overId);
+      const overPermissionInAvailable = availablePermissions.find(p => p.id === overId);
+      
+      if (overPermissionInAgreed) {
+        targetZone = 'agreed';
+      } else if (overPermissionInAvailable) {
+        targetZone = 'available';
+      }
+    }
+
+    // Prevent dropping on the same zone where the item already is
+    if ((targetZone === 'agreed' && isInAgreed) || (targetZone === 'available' && isInAvailable)) {
+      return;
+    }
+
     // Move to agreed permissions
-    if (overId === 'agreed' && isInAvailable) {
+    if (targetZone === 'agreed' && isInAvailable) {
       setAvailablePermissions(prev => prev.filter(p => p.id !== activeId));
       setAgreedPermissions(prev => [...prev, permission]);
     }
     
     // Move back to available permissions
-    else if (overId === 'available' && isInAgreed) {
+    else if (targetZone === 'available' && isInAgreed) {
       setAgreedPermissions(prev => prev.filter(p => p.id !== activeId));
       setAvailablePermissions(prev => [...prev, permission]);
     }
@@ -417,9 +538,12 @@ export const PermissionConsentManager: React.FC<PermissionConsentManagerProps> =
       <DragOverlay>
         {draggedPermission && (
           <motion.div
-            initial={{ scale: 1.05, opacity: 0.8 }}
-            animate={{ scale: 1.05, opacity: 0.8 }}
-            className="transform rotate-2"
+            initial={{ scale: 1.05, opacity: 0.9 }}
+            animate={{ scale: 1.05, opacity: 0.9 }}
+            className="transform rotate-2 shadow-2xl z-50"
+            style={{
+              filter: 'drop-shadow(0 10px 20px rgba(0, 0, 0, 0.3))',
+            }}
           >
             <DraggablePermission 
               permission={draggedPermission} 

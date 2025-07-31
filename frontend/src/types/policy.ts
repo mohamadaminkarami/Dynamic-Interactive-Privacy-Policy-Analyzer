@@ -141,12 +141,11 @@ export interface UIComponent {
   };
 }
 
-export interface PolicyRequest {
-  policy_content: string;
+export interface PolicyAnalyzeRequest {
   company_name: string;
   company_url?: string;
-  document_type?: string;
   contact_email?: string;
+  policy_content: string;
 }
 
 // Types for text visualization and styling

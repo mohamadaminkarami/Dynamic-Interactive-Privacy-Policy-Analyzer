@@ -1,7 +1,7 @@
 from typing import Any, Dict
 
 from app.api.schemas import (
-    PolicyProcessingRequest,
+    PolicyAnalyzeRequest,
     WebpageGenerationRequest,
     WebpageGenerationResponse,
 )
@@ -287,7 +287,7 @@ async def list_generated_webpages():
 
 
 @router.post("/analyze-and-generate", response_model=Dict[str, Any])
-async def analyze_and_generate_webpage(request: PolicyProcessingRequest):
+async def analyze_and_generate_webpage(request: PolicyAnalyzeRequest):
     """
     Analyze a privacy policy AND generate a webpage in one step
     """

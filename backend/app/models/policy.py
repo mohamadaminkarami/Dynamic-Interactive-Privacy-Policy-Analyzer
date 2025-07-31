@@ -336,7 +336,7 @@ class ProcessedSection(BaseModel):
     )
     word_count: int = Field(default=0, description="Number of words in section")
     reading_time: int = Field(
-        default=0, description="Estimated reading time in seconds"
+        default=0, description="Estimated reading time in minutes"
     )
     processing_timestamp: datetime = Field(
         default_factory=datetime.now, description="When this was processed"
@@ -429,11 +429,8 @@ class LLMRequest(BaseModel):
     temperature: float = Field(
         default=0.1, ge=0.0, le=2.0, description="Temperature for generation"
     )
-    max_tokens: int = Field(
-        default=1000, ge=1, le=4000, description="Maximum tokens to generate"
-    )
-    response_format: Optional[str] = Field(
-        None, description="Response format (json, text)"
+    max_tokens: Optional[int] = Field(
+        default=None, ge=1, le=4000, description="Maximum tokens to generate"
     )
 
 
@@ -447,3 +444,14 @@ class LLMResponse(BaseModel):
     timestamp: datetime = Field(
         default_factory=datetime.now, description="Response timestamp"
     )
+
+
+# ------------------------------------------------------------
+
+
+class PolicySection(BaseModel):
+    """Processed section of a privacy policy"""
+
+    id: str = Field(..., description="Unique section identifier")
+    title: str = Field(..., description="Section title")
+    content: str = Field(..., description="Section content")
