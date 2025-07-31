@@ -12,8 +12,8 @@ import os
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
-from backend.models import UserImpactAnalysis, ContentChunk, RiskLevel
-from backend.llm_service import LLMService
+from app.models import UserImpactAnalysis, ContentChunk, RiskLevel
+from app.services.policy_analyzer import PolicyAnalyzer
 
 
 
@@ -23,7 +23,7 @@ async def test_quiz_bug():
     print("=" * 50)
     
     # Initialize LLM service
-    llm_service = LLMService()
+    policy_analyzer = PolicyAnalyzer()
     
     # Create a high-sensitivity user impact that should trigger quiz
     high_sensitivity_impact = UserImpactAnalysis(
@@ -44,7 +44,7 @@ async def test_quiz_bug():
     )
     
     # Test should_generate_quiz logic
-    should_generate = llm_service.should_generate_quiz(high_sensitivity_impact)
+    should_generate = policy_analyzer.should_generate_quiz(high_sensitivity_impact)
     print(f"📊 Should generate quiz: {should_generate}")
     print(f"📊 Sensitivity score: {high_sensitivity_impact.sensitivity_score}")
     print(f"📊 Privacy impact: {high_sensitivity_impact.privacy_impact_score}")
@@ -68,7 +68,7 @@ async def test_quiz_bug():
     
     try:
         # Test direct quiz generation
-        quiz = await llm_service.generate_quiz_for_section(
+        quiz = await policy_analyzer.generate_quiz_for_section(
             test_chunk.content,
             test_chunk.section_title or "Test Section",
             test_chunk.id,
@@ -86,7 +86,7 @@ async def test_quiz_bug():
         
         # Test full section processing
         print(f"\n🔄 Testing full section processing...")
-        section = await llm_service.process_section(test_chunk)
+        section = await policy_analyzer.process_section(test_chunk)
         
         print(f"\n📊 Section processing results:")
         print(f"   requires_quiz: {section.requires_quiz}")
@@ -114,8 +114,8 @@ async def test_quiz_bug():
         
         # Test if we can still get user impact analysis
         try:
-            impact = await llm_service.analyze_user_impact(test_chunk.content)
-            should_quiz = llm_service.should_generate_quiz(impact)
+            impact = await policy_analyzer.analyze_user_impact(test_chunk.content)
+            should_quiz = policy_analyzer.should_generate_quiz(impact)
             print(f"\n📊 Impact analysis succeeded:")
             print(f"   Sensitivity: {impact.sensitivity_score}")
             print(f"   Should generate quiz: {should_quiz}")

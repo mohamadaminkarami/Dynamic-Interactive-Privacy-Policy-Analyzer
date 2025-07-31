@@ -126,17 +126,3 @@ The system uses structured data models for:
 ---
 
 *This project is in active development. The LLM integration is complete and ready for testing.* 
-
-
-
-
-
-
-openai==1.98.0
-fastapi==0.116.1
-uvicorn==0.35.0
-pydantic==2.5.0
-requests==2.31.0
-aiofiles==23.2.0
-typing-extensions==4.11.0
-jinja2==3.1.2

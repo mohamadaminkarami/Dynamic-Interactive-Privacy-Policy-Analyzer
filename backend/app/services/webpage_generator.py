@@ -5,13 +5,12 @@ Converts privacy policy analysis into embeddable HTML webpages
 
 import uuid
 import json
-import os
 from typing import Dict, List, Optional, Any
 from datetime import datetime
 from pathlib import Path
-from jinja2 import Environment, FileSystemLoader, Template
+# from jinja2 import Environment, FileSystemLoader
 
-from models import PrivacyPolicyDocument, ProcessedSection
+from app.models import PrivacyPolicyDocument, ProcessedSection
 
 
 class WebpageTemplate:
@@ -37,11 +36,11 @@ class WebpageGenerator:
         self.templates_dir = Path("backend/templates/webpages")
         self.templates_dir.mkdir(parents=True, exist_ok=True)
         
-        # Setup Jinja2 environment
-        self.jinja_env = Environment(
-            loader=FileSystemLoader(str(self.templates_dir)),
-            autoescape=True
-        )
+        # # Setup Jinja2 environment
+        # self.jinja_env = Environment(
+        #     loader=FileSystemLoader(str(self.templates_dir)),
+        #     autoescape=True
+        # )
         
         # Available templates
         self.templates = {

@@ -17,15 +17,15 @@ from unittest.mock import patch
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
-from backend.models import UserImpactAnalysis, ContentChunk, RiskLevel
-from backend.llm_service import LLMService
+from app.models import UserImpactAnalysis, ContentChunk, RiskLevel
+from app.services.policy_analyzer import PolicyAnalyzer
 
 async def test_quiz_failure_scenarios():
     """Test various scenarios that could cause quiz generation to fail"""
     print("🧪 Testing Quiz Failure Scenarios")
     print("=" * 50)
     
-    llm_service = LLMService()
+    policy_analyzer = PolicyAnalyzer()
     
     # Scenario 1: LLM API failure simulation
     print("\n📋 Scenario 1: Simulating LLM API failure")
@@ -40,15 +40,15 @@ async def test_quiz_failure_scenarios():
     )
     
     # Mock the LLM call to simulate failure
-    original_call_llm = llm_service._call_llm
+    original_call_llm = policy_analyzer._call_llm
     
     async def mock_failing_llm_call(request):
         print("   🔴 Simulating LLM API failure...")
         raise Exception("Simulated API failure")
     
-    with patch.object(llm_service, '_call_llm', mock_failing_llm_call):
+    with patch.object(policy_analyzer, '_call_llm', mock_failing_llm_call):
         try:
-            quiz = await llm_service.generate_quiz_for_section(
+            quiz = await policy_analyzer.generate_quiz_for_section(
                 test_chunk.content,
                 test_chunk.section_title,
                 test_chunk.id,
@@ -64,7 +64,7 @@ async def test_quiz_failure_scenarios():
     print("\n📋 Scenario 2: Simulating JSON parsing failure")
     
     async def mock_invalid_json_response(request):
-        from backend.models import LLMResponse
+        from app.models import LLMResponse
         return LLMResponse(
             content="This is not valid JSON at all!",
             llm_model="test",
@@ -72,8 +72,8 @@ async def test_quiz_failure_scenarios():
             processing_time=1.0
         )
     
-    with patch.object(llm_service, '_call_llm', mock_invalid_json_response):
-        quiz = await llm_service.generate_quiz_for_section(
+    with patch.object(policy_analyzer, '_call_llm', mock_invalid_json_response):
+        quiz = await policy_analyzer.generate_quiz_for_section(
             test_chunk.content,
             test_chunk.section_title,
             test_chunk.id,
@@ -105,11 +105,11 @@ async def test_quiz_failure_scenarios():
             font_weight="bold"
         )
         
-        should_generate = llm_service.should_generate_quiz(impact)
+        should_generate = policy_analyzer.should_generate_quiz(impact)
         print(f"   Score {score}: should_generate_quiz = {should_generate}")
         
         if should_generate:
-            quiz = await llm_service.generate_quiz_for_section(
+            quiz = await policy_analyzer.generate_quiz_for_section(
                 "Test content that should trigger quiz",
                 "Test Section",
                 f"test_{score}",
@@ -125,7 +125,7 @@ async def test_full_section_processing():
     print("\n\n🔄 Testing Full Section Processing Pipeline")
     print("=" * 50)
     
-    llm_service = LLMService()
+    policy_analyzer = PolicyAnalyzer()
     
     # Test with problematic content
     problematic_content = ContentChunk(
@@ -143,7 +143,7 @@ async def test_full_section_processing():
     )
     
     try:
-        section = await llm_service.process_section(problematic_content)
+        section = await policy_analyzer.process_section(problematic_content)
         
         print(f"📊 Processing Results:")
         print(f"   Section ID: {section.id}")

@@ -7,8 +7,8 @@ This script tests the basic functionality of the LLM service
 import asyncio
 import os
 from dotenv import load_dotenv
-from ..llm_service import LLMService
-from ..models import ContentChunk
+from app.services.policy_analyzer import PolicyAnalyzer
+from app.models import ContentChunk
 
 # Load environment variables
 load_dotenv()
@@ -28,12 +28,12 @@ async def test_basic_functionality():
     
     try:
         # Initialize the service
-        llm_service = LLMService()
+        policy_analyzer = PolicyAnalyzer()
         print("✅ LLM Service initialized successfully")
         
         # Test health check
         print("\n📊 Testing health check...")
-        health_result = await llm_service.health_check()
+        health_result = await policy_analyzer.health_check()
         print(f"Health Status: {health_result['status']}")
         
         if health_result['status'] == 'healthy':
@@ -55,7 +55,7 @@ async def test_content_processing():
     print("\n🔍 Testing Content Processing...")
     
     try:
-        llm_service = LLMService()
+        policy_analyzer = PolicyAnalyzer()
         
         # Create a sample content chunk
         chunk = ContentChunk(
@@ -70,7 +70,7 @@ async def test_content_processing():
         print(f"📏 Content length: {len(chunk.content)} characters")
         
         # Process the section
-        processed_section = await llm_service.process_section(chunk)
+        processed_section = await policy_analyzer.process_section(chunk)
         
         print("\n✅ Processing completed successfully!")
         print(f"📋 Summary: {processed_section.summary}")
@@ -101,28 +101,28 @@ async def test_individual_functions():
     print("\n🧪 Testing Individual Functions...")
     
     try:
-        llm_service = LLMService()
+        policy_analyzer = PolicyAnalyzer()
         
         # Test structure analysis
         print("📊 Testing structure analysis...")
-        structure = await llm_service.analyze_structure(SAMPLE_CONTENT)
+        structure = await policy_analyzer.analyze_structure(SAMPLE_CONTENT)
         print(f"  Section Type: {structure.get('section_type', 'N/A')}")
         print(f"  Complexity: {structure.get('complexity_level', 'N/A')}")
         
         # Test entity extraction
         print("\n🔍 Testing entity extraction...")
-        entities = await llm_service.extract_entities(SAMPLE_CONTENT)
+        entities = await policy_analyzer.extract_entities(SAMPLE_CONTENT)
         print(f"  Found {len(entities)} entities")
         
         # Test user impact analysis
         print("\n👤 Testing user impact analysis...")
-        impact = await llm_service.analyze_user_impact(SAMPLE_CONTENT)
+        impact = await policy_analyzer.analyze_user_impact(SAMPLE_CONTENT)
         print(f"  Risk Level: {impact.risk_level}")
         print(f"  Key Concerns: {len(impact.key_concerns)} items")
         
         # Test summary generation
         print("\n📝 Testing summary generation...")
-        summary = await llm_service.generate_summary(SAMPLE_CONTENT)
+        summary = await policy_analyzer.generate_summary(SAMPLE_CONTENT)
         print(f"  Summary length: {len(summary)} characters")
         
         print("\n✅ All individual function tests passed!")

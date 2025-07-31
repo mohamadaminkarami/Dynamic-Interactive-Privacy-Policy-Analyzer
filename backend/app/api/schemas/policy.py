@@ -5,7 +5,7 @@ Policy-related request and response schemas
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from models import PrivacyPolicyDocument
+from app.models import PrivacyPolicyDocument
 from pydantic import BaseModel, Field
 
 

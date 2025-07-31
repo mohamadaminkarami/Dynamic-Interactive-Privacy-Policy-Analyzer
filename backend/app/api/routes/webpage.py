@@ -9,8 +9,8 @@ from app.core.config import settings
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
-from models import PrivacyPolicyDocument, ProcessedSection
-from webpage_generator import WebpageGenerator
+from app.models import PrivacyPolicyDocument, ProcessedSection
+from app.services.webpage_generator import WebpageGenerator
 
 router = APIRouter()
 
@@ -60,7 +60,7 @@ async def generate_webpage(request: WebpageGenerationRequest):
         # from a database using the processing_id
 
         # For demonstration, create a simple mock document
-        from .models import RiskLevel
+        from app.models import RiskLevel
 
         document = PrivacyPolicyDocument(
             id=request.processing_id,
@@ -81,7 +81,7 @@ async def generate_webpage(request: WebpageGenerationRequest):
         )
 
         # Mock ProcessedSections
-        from .models import DataType, UserImpactAnalysis, UserRight
+        from app.models import DataType, UserImpactAnalysis, UserRight
 
         sections = [
             ProcessedSection(
