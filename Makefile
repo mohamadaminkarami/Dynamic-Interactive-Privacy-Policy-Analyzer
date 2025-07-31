@@ -24,10 +24,9 @@ help:
 
 # Backend commands
 run-server:
-	@echo "🔧 Starting backend server..."
-	@echo "Server will be available at: http://localhost:8000"
-	@echo "API docs at: http://localhost:8000/docs"
-	python -m uvicorn backend.main:app --reload --port 8000
+	@echo "Starting FastAPI backend server on http://localhost:8000"
+	@echo "API Documentation will be available at http://localhost:8000/docs"
+	cd backend && python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000
 
 # Frontend commands  
 run-client:

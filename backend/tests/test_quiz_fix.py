@@ -17,7 +17,6 @@ sys.path.insert(0, project_root)
 
 from backend.models import UserImpactAnalysis, ContentChunk, RiskLevel
 from backend.llm_service import LLMService
-from backend.config import config
 
 async def test_edge_case_fix():
     """Test that the edge case (7.9 sensitivity) is now fixed"""

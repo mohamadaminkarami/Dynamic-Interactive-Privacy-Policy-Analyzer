@@ -1,7 +1,9 @@
-from typing import List, Dict, Optional, Any
-from pydantic import BaseModel, Field
-from enum import Enum
 from datetime import datetime
+from enum import Enum
+from typing import Dict, List, Optional
+
+from pydantic import BaseModel, Field
+
 
 class RiskLevel(str, Enum):
     """Risk level for privacy policy sections"""

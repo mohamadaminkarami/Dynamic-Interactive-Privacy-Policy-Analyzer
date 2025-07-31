@@ -11,7 +11,7 @@ from datetime import datetime
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader, Template
 
-from .models import PrivacyPolicyDocument, ProcessedSection
+from models import PrivacyPolicyDocument, ProcessedSection
 
 
 class WebpageTemplate:

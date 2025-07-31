@@ -19,7 +19,6 @@ sys.path.insert(0, project_root)
 
 from backend.models import UserImpactAnalysis, ContentChunk, RiskLevel
 from backend.llm_service import LLMService
-from backend.config import config
 
 async def test_quiz_failure_scenarios():
     """Test various scenarios that could cause quiz generation to fail"""
