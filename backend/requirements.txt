@@ -1,10 +1,11 @@
-openai==0.28.1
-fastapi==0.104.1
-uvicorn==0.24.0
-python-multipart==0.0.6
-python-dotenv==1.0.0
-pydantic==2.5.0
-requests==2.31.0
-aiofiles==23.2.0
-typing-extensions==4.11.0
-jinja2==3.1.2
+# FastAPI and web framework
+fastapi==0.116.1
+uvicorn[standard]==0.35.0
+python-multipart==0.0.20
+
+# AI and LLM integration
+openai==1.98.0
+
+# Data processing
+pydantic==2.11.7
+pydantic-settings==2.10.1

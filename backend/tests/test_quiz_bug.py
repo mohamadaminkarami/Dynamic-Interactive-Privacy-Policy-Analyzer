@@ -5,7 +5,6 @@ Test script to reproduce the quiz bug:
 """
 
 import asyncio
-import json
 import sys
 import os
 
@@ -15,7 +14,8 @@ sys.path.insert(0, project_root)
 
 from backend.models import UserImpactAnalysis, ContentChunk, RiskLevel
 from backend.llm_service import LLMService
-from backend.config import config
+
+
 
 async def test_quiz_bug():
     """Test the quiz generation bug scenario"""

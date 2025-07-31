@@ -1,15 +1,14 @@
 import json
-import os
 import time
 import asyncio
-from typing import Dict, List, Optional, Any, Union
+from typing import Dict, List, Optional, Any
 import openai
 
-from .config import config
-from .models import (
+from app.core.config import settings
+from models import (
     LLMRequest, LLMResponse, ContentChunk, ProcessedSection, 
     UserImpactAnalysis, ExtractedEntity, RiskLevel, DataType, 
-    UserRight, LegalFramework, TextSegment, StyledContent,
+    UserRight, TextSegment, StyledContent,
     InteractiveQuiz, QuizQuestion, QuizOption
 )
 
@@ -18,15 +17,12 @@ class LLMService:
     
     def __init__(self):
         """Initialize the LLM service"""
-        if not config.OPENAI_API_KEY:
-            raise ValueError("OpenAI API key is required")
-        
         try:
             # Configure OpenAI client (old format)
-            openai.api_key = config.OPENAI_API_KEY
+            openai.api_key = settings.OPENAI_API_KEY
             
             # Check if custom base URL is set (for LiteLLM proxy)
-            base_url = os.getenv('OPENAI_BASE_URL')
+            base_url = settings.LITELLM_PROXY_URL
             if base_url:
                 openai.api_base = base_url
                 print(f"🔗 Using custom OpenAI base URL: {base_url}")
@@ -34,12 +30,12 @@ class LLMService:
         except Exception as e:
             raise ValueError(f"Failed to configure OpenAI client: {str(e)}")
         
-        self.primary_model = config.OPENAI_MODEL_PRIMARY
-        self.secondary_model = config.OPENAI_MODEL_SECONDARY
+        self.primary_model = settings.OPENAI_MODEL_PRIMARY
+        self.secondary_model = settings.OPENAI_MODEL_SECONDARY
         
         # Rate limiting
         self.request_times: List[float] = []
-        self.max_requests_per_minute = config.MAX_REQUESTS_PER_MINUTE
+        self.max_requests_per_minute = settings.MAX_REQUESTS_PER_MINUTE
         
     async def _rate_limit_check(self) -> None:
         """Check and enforce rate limiting"""

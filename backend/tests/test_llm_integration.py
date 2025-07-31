@@ -7,8 +7,8 @@ This script tests the basic functionality of the LLM service
 import asyncio
 import os
 from dotenv import load_dotenv
-from .llm_service import LLMService
-from .models import ContentChunk
+from ..llm_service import LLMService
+from ..models import ContentChunk
 
 # Load environment variables
 load_dotenv()
