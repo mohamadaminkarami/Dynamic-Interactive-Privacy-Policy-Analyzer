@@ -5,8 +5,8 @@ import pytest
 from datetime import datetime
 
 from app.api.schemas import (
-    PolicyProcessingRequest,
-    PolicyProcessingResponse,
+    PolicyAnalyzeRequest,
+    PolicyAnalyzeResponse,
     UIComponent,
     WebpageGenerationRequest,
     WebpageGenerationResponse,
@@ -18,7 +18,7 @@ class TestPolicySchemas:
 
     def test_policy_processing_request(self):
         """Test PolicyProcessingRequest schema"""
-        request = PolicyProcessingRequest(
+        request = PolicyAnalyzeRequest(
             company_name="Test Company",
             policy_content="This is a test privacy policy content.",
             policy_title="Test Privacy Policy",
@@ -85,8 +85,8 @@ class TestSchemaImports:
         """Test that all schemas can be imported from the package"""
         # This test ensures that the __init__.py file is working correctly
         from app.api.schemas import (
-            PolicyProcessingRequest,
-            PolicyProcessingResponse,
+            PolicyAnalyzeRequest,
+            PolicyAnalyzeResponse,
             UIComponent,
             WebpageGenerationRequest,
             WebpageGenerationResponse,

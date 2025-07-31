@@ -2,13 +2,14 @@ from typing import List, Optional
 
 from app.api.schemas import UIComponent
 from app.models import ContentChunk, PrivacyPolicyDocument, ProcessedSection, RiskLevel
+from app.core.config import settings
 
 
 # Content Chunking Function
-def chunk_content(
+def chunk_content_offline(
     content: str, max_chunk_size: int = 4000, overlap: int = 200
 ) -> List[ContentChunk]:
-    """Intelligently chunk content for processing"""
+    """offline chunk content for processing"""
     chunks = []
 
     # Split by paragraphs first
@@ -81,6 +82,9 @@ def estimate_tokens(text: str) -> int:
 # UI Component Generation
 def generate_ui_components(document: PrivacyPolicyDocument) -> List[UIComponent]:
     """Generate dynamic UI components from processed document"""
+    if settings.DEBUG_LOGGING:
+        print(f"🔄 Generating UI components")
+
     components = []
 
     # Sort sections by importance score
@@ -155,6 +159,9 @@ def generate_ui_components(document: PrivacyPolicyDocument) -> List[UIComponent]
         )
 
         components.append(component)
+
+    if settings.DEBUG_LOGGING:
+        print(f"🔄 Generated {len(components)} UI components")
 
     return components
 

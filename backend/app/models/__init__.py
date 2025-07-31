@@ -14,6 +14,7 @@ from .policy import (
     TextSegment,
     UserImpactAnalysis,
     UserRight,
+    PolicySection,
 )
 
 __all__ = [
@@ -32,4 +33,5 @@ __all__ = [
     "StyledContent",
     "RiskLevel",
     "TextSegment",
+    "PolicySection",
 ]

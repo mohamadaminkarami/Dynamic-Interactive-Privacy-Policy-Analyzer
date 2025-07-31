@@ -75,7 +75,7 @@ class WebpageGenerator:
         }
         
         # Create template files if they don't exist
-        self._create_default_templates()
+        # self._create_default_templates()
     
     def _create_default_templates(self):
         """Create default template files if they don't exist"""

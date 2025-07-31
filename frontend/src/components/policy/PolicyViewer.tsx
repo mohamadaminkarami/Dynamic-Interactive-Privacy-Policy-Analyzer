@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { PrivacyPolicy, PolicyRequest, UIComponent } from '@/types/policy';
+import { PrivacyPolicy, PolicyAnalyzeRequest, UIComponent } from '@/types/policy';
 import { apiClient } from '@/lib/api';
 import { DynamicPolicyComponent } from '@/components/policy/DynamicPolicyComponent';
 import { PermissionConsentManager } from '@/components/policy/PermissionConsentManager';
@@ -15,13 +15,12 @@ export const PolicyViewer: React.FC = () => {
   const [allExpanded, setAllExpanded] = useState(false); // Default to collapsed for better UX
   const [activeTab, setActiveTab] = useState<'policy' | 'permissions'>('policy');
   const [consentedPermissions, setConsentedPermissions] = useState<any[]>([]);
-  
-  const [formData, setFormData] = useState<PolicyRequest>({
-    policy_content: '',
+
+  const [formData, setFormData] = useState<PolicyAnalyzeRequest>({
     company_name: '',
     company_url: '',
-    document_type: 'privacy_policy',
     contact_email: '',
+    policy_content: '',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -164,7 +163,7 @@ export const PolicyViewer: React.FC = () => {
                   </div>
                 </div>
               )}
-              
+
               <button
                 type="submit"
                 disabled={isAnalyzing || !formData.company_name || !formData.policy_content}
@@ -207,18 +206,18 @@ export const PolicyViewer: React.FC = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <span className="text-2xl">📊</span>
-                Policy Analysis Summary
+                Policy Analysis Summary of {result.document.company_name}
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">📊 Policy Analysis Summary</h3>
+              <div className="bg-white p-6 rounded-lg mb-6">
+                {/* <h3 className="text-lg font-semibold text-gray-900 mb-4">📊 Policy Analysis Summary</h3> */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                   <div className="text-center">
                     <div className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getRiskLevelColor(result.document.overall_risk_level)}`}>
                       <div className="text-sm text-gray-800 font-semibold">
-                        {result.document.overall_risk_level.charAt(0).toUpperCase() + 
-                         result.document.overall_risk_level.slice(1)} Risk
+                        {result.document.overall_risk_level.charAt(0).toUpperCase() +
+                          result.document.overall_risk_level.slice(1)} Risk
                       </div>
                     </div>
                   </div>
@@ -286,21 +285,19 @@ export const PolicyViewer: React.FC = () => {
               <div className="flex gap-2 mb-6">
                 <button
                   onClick={() => setActiveTab('policy')}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                    activeTab === 'policy'
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === 'policy'
                       ? 'bg-blue-600 text-white'
                       : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                  }`}
+                    }`}
                 >
                   📱 Policy Sections
                 </button>
                 <button
                   onClick={() => setActiveTab('permissions')}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                    activeTab === 'permissions'
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === 'permissions'
                       ? 'bg-blue-600 text-white'
                       : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                  }`}
+                    }`}
                 >
                   🔐 Permission Consent
                 </button>
@@ -331,12 +328,12 @@ export const PolicyViewer: React.FC = () => {
                         {allExpanded ? '📤 Collapse All' : '📥 Expand All'}
                       </button>
                     </div>
-                    
+
                     <div className="space-y-4">
                       {sortedComponents.map((component) => (
-                        <DynamicPolicyComponent 
-                          key={component.id} 
-                          component={component} 
+                        <DynamicPolicyComponent
+                          key={component.id}
+                          component={component}
                           forceExpanded={allExpanded}
                         />
                       ))}
@@ -356,7 +353,7 @@ export const PolicyViewer: React.FC = () => {
                       components={sortedComponents}
                       onConsentChange={handlePermissionConsentChange}
                     />
-                    
+
                     {/* Consent Summary */}
                     {consentedPermissions.length > 0 && (
                       <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">

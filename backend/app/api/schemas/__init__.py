@@ -2,8 +2,8 @@
 # This package contains all request and response models for the API
 
 from .policy import (
-    PolicyProcessingRequest,
-    PolicyProcessingResponse,
+    PolicyAnalyzeRequest,
+    PolicyAnalyzeResponse,
     UIComponent,
     HealthResponse,
 )
@@ -14,8 +14,8 @@ from .webpage import (
 )
 
 __all__ = [
-    "PolicyProcessingRequest",
-    "PolicyProcessingResponse", 
+    "PolicyAnalyzeRequest",
+    "PolicyAnalyzeResponse", 
     "UIComponent",
     "HealthResponse",
     "WebpageGenerationRequest",

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { UIComponent, QuizResult } from '@/types/policy';
 import { Card, CardHeader, CardContent, CardTitle } from '@/components/ui/Card';
 import StyledTextRenderer from './StyledTextRenderer';
@@ -21,6 +21,9 @@ export const DynamicPolicyComponent: React.FC<DynamicPolicyComponentProps> = ({
   const [isExpanded, setIsExpanded] = useState(false);
   const [showQuiz, setShowQuiz] = useState(false);
   const [quizResults, setQuizResults] = useState<QuizResult | null>(null);
+  
+  // Ref for scrolling to quiz
+  const quizRef = useRef<HTMLDivElement>(null);
 
   const {
     attributes,
@@ -61,6 +64,19 @@ export const DynamicPolicyComponent: React.FC<DynamicPolicyComponentProps> = ({
       setIsExpanded(true);
     }
     setShowQuiz(true);
+    
+    // Scroll to quiz after it's rendered
+    setTimeout(() => {
+      if (quizRef.current) {
+        quizRef.current.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'center',
+          inline: 'nearest'
+        });
+        // Optional: Add focus for accessibility
+        quizRef.current.focus();
+      }
+    }, 100); // Small delay to ensure DOM is updated
   };
 
   const handleExpandToggle = () => {
@@ -136,58 +152,6 @@ export const DynamicPolicyComponent: React.FC<DynamicPolicyComponentProps> = ({
   const getDisplayTitle = () => {
     const title = component.content.title || `Section ${component.priority}`;
     
-    // If we have a generic title, try to extract something meaningful from the summary
-    if (title.startsWith('Section ') && component.content.summary) {
-      const summary = component.content.summary;
-      
-      // Remove the generic introduction text
-      const cleanedSummary = summary
-        .replace(/^Here is a user-friendly summary of the privacy policy section:\s*-?\s*/i, '')
-        .replace(/^Here is a user-friendly summary of the privacy policy section:\s*/i, '')
-        .replace(/^Here is a user-friendly summary:\s*/i, '')
-        .replace(/^Summary:\s*/i, '')
-        .trim();
-      
-      // Look for section headers or bold text that might be a title
-      const headerMatch = cleanedSummary.match(/^\*\*([^*]+)\*\*/);
-      if (headerMatch) {
-        return headerMatch[1].trim();
-      }
-      
-      // Look for patterns like "What We Collect:", "How We Use:", etc.
-      const colonTitleMatch = cleanedSummary.match(/^([^:]+):/);
-      if (colonTitleMatch && colonTitleMatch[1].length < 50) {
-        return colonTitleMatch[1].trim();
-      }
-      
-      // Try to extract title from first meaningful sentence
-      const sentences = cleanedSummary.split(/[.!?]+/);
-      const firstSentence = sentences[0]?.trim();
-      
-      if (firstSentence && firstSentence.length > 10 && firstSentence.length < 80) {
-        // Check if it looks like a title (starts with action words or keywords)
-        const titlePattern = /^(We|This|Our|The|Your|Data|Information|Privacy|Policy|Collection|Sharing|Processing|Storage|Security|Rights|Consent|Cookies|Analytics|Marketing|Third|Legal)/i;
-        if (titlePattern.test(firstSentence)) {
-          return firstSentence.replace(/[*#]/g, '').trim();
-        }
-      }
-    }
-    
-    // Fallback to a more descriptive title based on data types or content
-    if (component.content.data_types && component.content.data_types.length > 0) {
-      const dataTypes = component.content.data_types;
-      if (dataTypes.length <= 2) {
-        return `${dataTypes.join(' & ')} Processing`;
-      } else {
-        return `${dataTypes[0]} & ${dataTypes.length - 1} More Data Types`;
-      }
-    }
-    
-    // Use risk level as fallback
-    if (component.content.risk_level) {
-      return `${component.content.risk_level.charAt(0).toUpperCase() + component.content.risk_level.slice(1)} Risk Section`;
-    }
-    
     return title;
   };
 
@@ -195,29 +159,42 @@ export const DynamicPolicyComponent: React.FC<DynamicPolicyComponentProps> = ({
   const getCollapsedSummary = () => {
     const keyPoints = [];
     
-    // Add main purpose/activity
+    // Add main purpose/activity from summary
     if (component.content.summary) {
-      // Clean up the summary by removing redundant intro text
+      // Clean up the summary by removing redundant intro text and quotes
       const cleanedSummary = component.content.summary
         .replace(/^Here is a user-friendly summary of the privacy policy section:\s*-?\s*/i, '')
         .replace(/^Here is a user-friendly summary of the privacy policy section:\s*/i, '')
         .replace(/^Here is a user-friendly summary:\s*/i, '')
         .replace(/^Summary:\s*/i, '')
+        .replace(/^["']|["']$/g, '') // Remove leading/trailing quotes
+        .replace(/\s*["']\s*/g, ' ') // Remove quotes within text
         .trim();
       
-      const sentences = cleanedSummary.split(/[.!?]+/);
-      const mainSentence = sentences[0]?.trim();
-      
-      if (mainSentence && mainSentence.length > 10) {
-        // Clean up markdown formatting for display
-        const cleanSentence = mainSentence
-          .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold markdown
-          .replace(/\*(.*?)\*/g, '$1')     // Remove italic markdown
-          .replace(/#{1,6}\s*/g, '')       // Remove headers
-          .trim();
-        
-        // Don't add if it's just repeating the title
-        if (cleanSentence !== getDisplayTitle()) {
+      // For detailed summaries, try to extract key categories
+      if (cleanedSummary.length > 100) {
+        // Split by sentences and show first 2 key points
+        const sentences = cleanedSummary.split(/[.!?]+/);
+        for (let i = 0; i < Math.min(2, sentences.length); i++) {
+          const sentence = sentences[i]?.trim();
+          if (sentence && sentence.length > 15 && sentence !== getDisplayTitle()) {
+            const cleanSentence = sentence
+              .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold markdown
+              .replace(/\*(.*?)\*/g, '$1')     // Remove italic markdown
+              .replace(/#{1,6}\s*/g, '')       // Remove headers
+              .trim();
+            keyPoints.push(cleanSentence);
+          }
+        }
+      } else {
+        // For shorter summaries, use the whole thing
+        const mainSentence = cleanedSummary;
+        if (mainSentence && mainSentence.length > 10 && mainSentence !== getDisplayTitle()) {
+          const cleanSentence = mainSentence
+            .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold markdown
+            .replace(/\*(.*?)\*/g, '$1')     // Remove italic markdown
+            .replace(/#{1,6}\s*/g, '')       // Remove headers
+            .trim();
           keyPoints.push(cleanSentence);
         }
       }
@@ -291,15 +268,12 @@ export const DynamicPolicyComponent: React.FC<DynamicPolicyComponentProps> = ({
                 {...listeners}
                 onClick={(e) => e.stopPropagation()} // Prevent expand/collapse when dragging
               >
-                <span className="text-gray-700 hover:text-gray-800 cursor-grab active:cursor-grabbing">
-                  ⋮⋮
-                </span>
                 <span className="text-xl">{icon}</span>
               </div>
               
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className={`text-lg font-semibold ${textStyle}`}>
+                  <span className={`text-lg ${textStyle}`}>
                     {displayTitle}
                   </span>
                   
@@ -313,7 +287,7 @@ export const DynamicPolicyComponent: React.FC<DynamicPolicyComponentProps> = ({
                   )}
                 </div>
                 
-                <div className="flex items-center gap-4 text-sm text-gray-800">
+                <div className="flex items-center gap-4 text-xs text-gray-800 font-semibold">
                   <span>Priority: #{component.priority}</span>
                   <span>Sensitivity: {sensitivityScore.toFixed(1)}/10</span>
                   <span>Impact: {privacyImpact.toFixed(1)}/10</span>
@@ -365,7 +339,7 @@ export const DynamicPolicyComponent: React.FC<DynamicPolicyComponentProps> = ({
               {collapsedSummary.map((point, index) => (
                 <div key={index} className="flex items-start gap-2 text-sm text-gray-800">
                   <span className="text-gray-600 mt-1">•</span>
-                  <span>{point}</span>
+                  <span className="font-semibold">{point}</span>
                 </div>
               ))}
               
@@ -374,22 +348,7 @@ export const DynamicPolicyComponent: React.FC<DynamicPolicyComponentProps> = ({
                 <span className="px-2 py-1 text-xs bg-gray-100 text-gray-800 rounded-full font-medium">
                   {(component.content as any).reading_time || 1}min read
                 </span>
-                <span className="px-2 py-1 text-xs bg-gray-100 text-gray-800 rounded-full font-medium">
-                  {component.content.user_control}/5 control
-                </span>
-                {component.content.requires_quiz && component.content.quiz && (
-                  <span className="px-2 py-1 text-xs bg-purple-100 text-purple-600 rounded-full">
-                    Interactive quiz
-                  </span>
-                )}
-                {component.content.requires_quiz && !component.content.quiz && (
-                  <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-600 rounded-full">
-                    Quiz unavailable
-                  </span>
-                )}
-                <span className="px-2 py-1 text-xs bg-gray-100 text-gray-800 rounded-full font-medium">
-                  Click to expand
-                </span>
+        
               </div>
             </div>
           </CardContent>
@@ -417,6 +376,8 @@ export const DynamicPolicyComponent: React.FC<DynamicPolicyComponentProps> = ({
                     ?.replace(/^Here is a user-friendly summary of the privacy policy section:\s*/i, '')
                     ?.replace(/^Here is a user-friendly summary:\s*/i, '')
                     ?.replace(/^Summary:\s*/i, '')
+                    ?.replace(/^["']|["']$/g, '') // Remove leading/trailing quotes
+                    ?.replace(/\s*["']\s*/g, ' ') // Remove quotes within text
                     ?.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
                     ?.replace(/\*(.*?)\*/g, '<em>$1</em>')
                     ?.replace(/\n/g, '<br/>')
@@ -527,7 +488,7 @@ export const DynamicPolicyComponent: React.FC<DynamicPolicyComponentProps> = ({
 
             {/* Interactive Quiz Component */}
             {showQuiz && component.content.quiz && (
-              <div className="mt-4">
+              <div ref={quizRef} className="mt-4 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 rounded-lg" tabIndex={-1}>
                 <InteractiveQuizComponent
                   quiz={component.content.quiz}
                   onComplete={handleQuizComplete}
