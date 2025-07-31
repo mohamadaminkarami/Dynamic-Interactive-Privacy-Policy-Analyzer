@@ -3,13 +3,11 @@ import json
 import time
 from typing import Any, Dict, List, Optional
 
-import openai
 from openai import OpenAI
 
 from app.core.config import settings
 
-client = OpenAI(api_key=settings.OPENAI_API_KEY)
-from models import (
+from app.models import (
     ContentChunk,
     DataType,
     ExtractedEntity,
@@ -26,8 +24,10 @@ from models import (
     UserRight,
 )
 
+client = OpenAI(api_key=settings.OPENAI_API_KEY)
 
-class LLMService:
+
+class PolicyAnalyzer:
     """Service for processing privacy policies using OpenAI LLMs"""
 
     def __init__(self):

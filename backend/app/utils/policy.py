@@ -1,9 +1,7 @@
 from typing import List, Optional
 
-from app.api.schemas import (
-    UIComponent,
-)
-from models import ContentChunk, PrivacyPolicyDocument, ProcessedSection, RiskLevel
+from app.api.schemas import UIComponent
+from app.models import ContentChunk, PrivacyPolicyDocument, ProcessedSection, RiskLevel
 
 
 # Content Chunking Function

@@ -15,15 +15,16 @@ import os
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
-from backend.models import UserImpactAnalysis, ContentChunk, RiskLevel
-from backend.llm_service import LLMService
+from app.models import UserImpactAnalysis, ContentChunk, RiskLevel
+from app.services.policy_analyzer import PolicyAnalyzer
+
 
 async def test_edge_case_fix():
     """Test that the edge case (7.9 sensitivity) is now fixed"""
     print("🧪 Testing Edge Case Fix (7.9 sensitivity)")
     print("=" * 50)
     
-    llm_service = LLMService()
+    policy_analyzer = PolicyAnalyzer()
     
     # Test the problematic edge case
     impact = UserImpactAnalysis(
@@ -43,11 +44,11 @@ async def test_edge_case_fix():
         font_weight="bold"
     )
     
-    should_generate = llm_service.should_generate_quiz(impact)
+    should_generate = policy_analyzer.should_generate_quiz(impact)
     print(f"📊 Score 7.9: should_generate_quiz = {should_generate}")
     
     if should_generate:
-        quiz = await llm_service.generate_quiz_for_section(
+        quiz = await policy_analyzer.generate_quiz_for_section(
             "We share your data with advertising partners without clear opt-out mechanisms.",
             "Data Sharing",
             "test_edge_case",
@@ -70,7 +71,7 @@ async def test_error_resilience():
     print("\n\n🛡️ Testing Error Resilience")
     print("=" * 50)
     
-    llm_service = LLMService()
+    policy_analyzer = PolicyAnalyzer()
     
     # Test with content that might cause issues
     problematic_chunk = ContentChunk(
@@ -82,7 +83,7 @@ async def test_error_resilience():
     )
     
     try:
-        section = await llm_service.process_section(problematic_chunk)
+        section = await policy_analyzer.process_section(problematic_chunk)
         
         print(f"📊 Resilience Test Results:")
         print(f"   Section processed: ✅")
@@ -108,7 +109,7 @@ async def test_consistency_scenarios():
     print("\n\n🔄 Testing Consistency Scenarios")
     print("=" * 50)
     
-    llm_service = LLMService()
+    policy_analyzer = PolicyAnalyzer()
     
     test_cases = [
         {
@@ -142,7 +143,7 @@ async def test_consistency_scenarios():
         )
         
         try:
-            section = await llm_service.process_section(chunk)
+            section = await policy_analyzer.process_section(chunk)
             
             print(f"   Sensitivity: {section.user_impact.sensitivity_score}")
             print(f"   Requires quiz: {section.requires_quiz}")

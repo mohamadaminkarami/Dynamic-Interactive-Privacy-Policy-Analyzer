@@ -23,10 +23,10 @@ from app.utils.policy import (
     generate_ui_components,
 )
 from fastapi import APIRouter, HTTPException
-from llm_service import LLMService
-from models import PrivacyPolicyDocument
+from app.services.policy_analyzer import PolicyAnalyzer
+from app.models import PrivacyPolicyDocument
 
-llm_service = LLMService()
+policy_analyzer = PolicyAnalyzer()
 
 router = APIRouter()
 
@@ -70,7 +70,7 @@ async def analyze_policy(request: PolicyProcessingRequest):
         processed_sections = []
         for chunk in chunks:
             try:
-                section = await llm_service.process_section(chunk)
+                section = await policy_analyzer.process_section(chunk)
                 processed_sections.append(section)
                 print(f"✅ Processed chunk {chunk.position}: {section.title}")
             except Exception as e:
@@ -162,7 +162,7 @@ async def health_check():
     """Health check endpoint"""
     try:
         # Test LLM service
-        llm_health = await llm_service.health_check()
+        llm_health = await policy_analyzer.health_check()
 
         return HealthResponse(
             status="healthy",
@@ -179,7 +179,7 @@ async def health_check():
 async def available_models():
     """Get available LLM models"""
     return {
-        "primary_model": llm_service.primary_model,
-        "secondary_model": llm_service.secondary_model,
-        "rate_limit": llm_service.max_requests_per_minute,
+        "primary_model": policy_analyzer.primary_model,
+        "secondary_model": policy_analyzer.secondary_model,
+        "rate_limit": policy_analyzer.max_requests_per_minute,
     }
