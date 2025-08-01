@@ -71,7 +71,6 @@ out/
 next-env.d.ts
 
 # Docker
-.dockerignore
 
 # Testing
 .coverage

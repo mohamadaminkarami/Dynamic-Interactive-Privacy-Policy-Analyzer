@@ -1,7 +1,19 @@
 'use client';
 
 import React, { useState } from 'react';
-import { PrivacyPolicy, PolicyAnalyzeRequest, UIComponent } from '@/types/policy';
+import { PrivacyPolicy, PolicyAnalyzeRequest } from '@/types/policy';
+
+interface Permission {
+  id: string;
+  title: string;
+  description: string;
+  riskLevel: 'low' | 'medium' | 'high';
+  dataTypes: string[];
+  purpose: string;
+  required: boolean;
+  impactLevel: number;
+  source: string;
+}
 import { apiClient } from '@/lib/api';
 import { DynamicPolicyComponent } from '@/components/policy/DynamicPolicyComponent';
 import { PermissionConsentManager } from '@/components/policy/PermissionConsentManager';
@@ -14,7 +26,7 @@ export const PolicyViewer: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [allExpanded, setAllExpanded] = useState(false); // Default to collapsed for better UX
   const [activeTab, setActiveTab] = useState<'policy' | 'permissions'>('policy');
-  const [consentedPermissions, setConsentedPermissions] = useState<any[]>([]);
+  const [consentedPermissions, setConsentedPermissions] = useState<Permission[]>([]);
 
   const [formData, setFormData] = useState<PolicyAnalyzeRequest>({
     company_name: '',
@@ -45,7 +57,7 @@ export const PolicyViewer: React.FC = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handlePermissionConsentChange = (permissions: any[]) => {
+  const handlePermissionConsentChange = (permissions: Permission[]) => {
     setConsentedPermissions(permissions);
   };
 

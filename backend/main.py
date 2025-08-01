@@ -30,8 +30,8 @@ app = FastAPI(
 # CORS middleware for frontend integration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.ALLOWED_ORIGINS,
-    allow_credentials=True,
+    allow_origins=["*"],  # Allow all origins for Docker networking
+    allow_credentials=False,  # Disable credentials when using wildcard
     allow_methods=["*"],
     allow_headers=["*"],
 )

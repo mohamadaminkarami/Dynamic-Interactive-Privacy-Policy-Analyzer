@@ -42,13 +42,13 @@ export const DynamicPolicyComponent: React.FC<DynamicPolicyComponentProps> = ({
   };
 
   // Smart expansion logic based on sensitivity score, importance, and quiz requirements
-  const shouldExpandByDefault = () => {
-    const hasHighImportance = component.content.importance_score > 0.5;
-    const hasHighSensitivity = component.content.sensitivity_score >= 6.0;
-    const requiresQuiz = component.content.requires_quiz;
-    
-    return hasHighImportance || hasHighSensitivity || requiresQuiz;
-  };
+  // const shouldExpandByDefault = () => {
+  //   const hasHighImportance = component.content.importance_score > 0.5;
+  //   const hasHighSensitivity = component.content.sensitivity_score >= 6.0;
+  //   const requiresQuiz = component.content.requires_quiz;
+  //   
+  //   return hasHighImportance || hasHighSensitivity || requiresQuiz;
+  // };
 
   // Determine actual expansion state - prioritize user interaction over defaults
   const actuallyExpanded = forceExpanded || isExpanded;
@@ -306,12 +306,7 @@ export const DynamicPolicyComponent: React.FC<DynamicPolicyComponentProps> = ({
                 </button>
               )}
               
-              {/* Show quiz unavailable indicator if required but missing */}
-              {component.content.requires_quiz && !component.content.quiz && (
-                <span className="text-gray-500 text-xs px-2 py-1 bg-gray-100 rounded">
-                  ⚠️ Quiz Unavailable
-                </span>
-              )}
+              {/* Quiz unavailable indicator removed - show nothing when quiz is missing */}
               
               {/* Expansion arrow - clickable area */}
               <button
@@ -346,6 +341,7 @@ export const DynamicPolicyComponent: React.FC<DynamicPolicyComponentProps> = ({
               {/* Quick stats */}
               <div className="flex flex-wrap gap-2 mt-3 pt-2 border-t border-gray-200">
                 <span className="px-2 py-1 text-xs bg-gray-100 text-gray-800 rounded-full font-medium">
+                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                   {(component.content as any).reading_time || 1}min read
                 </span>
         
@@ -445,44 +441,36 @@ export const DynamicPolicyComponent: React.FC<DynamicPolicyComponentProps> = ({
               </div>
             )}
 
-            {/* Quiz Section */}
-            {component.content.requires_quiz && (
+            {/* Quiz Section - only show when quiz actually exists */}
+            {component.content.requires_quiz && component.content.quiz && (
               <div className="bg-purple-50 p-3 rounded-lg">
                 <h4 className="font-semibold text-purple-800 mb-2">🎯 Test Your Understanding</h4>
                 <p className="text-sm text-purple-700 mb-3">
                   This section contains important information that affects your privacy.
-                  {component.content.quiz ? ' Take the quiz to ensure you understand the implications.' : ' A quiz was recommended but is currently unavailable.'}
+                  Take the quiz to ensure you understand the implications.
                 </p>
                 
-                {component.content.quiz ? (
-                  <div className="mt-3">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (showQuiz) {
-                          setShowQuiz(false);
-                          setQuizResults(null); // Clear results when hiding
-                        } else {
-                          setShowQuiz(true);
-                        }
-                      }}
-                      className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium text-sm"
-                    >
-                      {showQuiz ? 'Hide Quiz' : 'Take Quiz'} 🎯
-                    </button>
-                    {quizResults && (
-                      <span className="ml-3 px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
-                        Last Score: {quizResults.percentage}%
-                      </span>
-                    )}
-                  </div>
-                ) : (
-                  <div className="mt-3 p-2 bg-yellow-100 border border-yellow-300 rounded">
-                    <p className="text-sm text-yellow-800">
-                      ⚠️ Quiz generation failed. This section was flagged as high-risk and would benefit from interactive learning.
-                    </p>
-                  </div>
-                )}
+                <div className="mt-3">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (showQuiz) {
+                        setShowQuiz(false);
+                        setQuizResults(null); // Clear results when hiding
+                      } else {
+                        setShowQuiz(true);
+                      }
+                    }}
+                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium text-sm"
+                  >
+                    {showQuiz ? 'Hide Quiz' : 'Take Quiz'} 🎯
+                  </button>
+                  {quizResults && (
+                    <span className="ml-3 px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
+                      Last Score: {quizResults.percentage}%
+                    </span>
+                  )}
+                </div>
               </div>
             )}
 

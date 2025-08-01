@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   DndContext,
   DragEndEvent,
@@ -451,7 +451,6 @@ export const PermissionConsentManager: React.FC<PermissionConsentManagerProps> =
   }, [agreedPermissions, onConsentChange]);
 
   const requiredPermissions = availablePermissions.filter(p => p.required);
-  const optionalPermissions = availablePermissions.filter(p => !p.required);
 
   return (
     <DndContext
@@ -527,7 +526,7 @@ export const PermissionConsentManager: React.FC<PermissionConsentManagerProps> =
           {requiredPermissions.length > 0 && (
             <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
               <p className="text-sm text-red-800">
-                ⚠️ <strong>{requiredPermissions.length}</strong> required permission{requiredPermissions.length !== 1 ? 's' : ''} 
+                ⚠️ <strong>{requiredPermissions.length}</strong> required permission{requiredPermissions.length !== 1 ? 's ' : ' '} 
                 must be accepted to use the service.
               </p>
             </div>

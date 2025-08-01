@@ -76,7 +76,8 @@ export const StyledTextRenderer: React.FC<StyledTextRendererProps> = ({
     }
   };
 
-  const renderSegment = (segment: TextSegment, index: number) => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const renderSegment = (segment: TextSegment, _index: number) => {
     const highlightClass = getHighlightClass(segment.highlight_color);
     const textColorClass = getTextColorClass(segment.text_color);
     const fontWeightClass = getFontWeightClass(segment.font_weight);

@@ -18,6 +18,11 @@ class Settings(BaseSettings):
         "http://localhost:3000",  # Next.js frontend
         "http://localhost:3001",  # Alternative frontend port
         "http://127.0.0.1:3000",
+        "http://frontend:3000",   # Docker service name
+        "http://172.19.0.1:3000", # Docker gateway
+        "http://172.19.0.2:3000", # Docker containers
+        "http://172.19.0.3:3000",
+        "http://172.19.0.4:3000",
     ]
 
     # OpenAI / LLM Configuration
@@ -53,3 +58,5 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+print(settings.model_dump())
