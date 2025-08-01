@@ -20,7 +20,6 @@ from app.utils.policy import (
     calculate_overall_sensitivity,
     calculate_readability_score,
     calculate_user_friendliness,
-    chunk_content_offline,
     generate_ui_components,
 )
 from fastapi import APIRouter, HTTPException
