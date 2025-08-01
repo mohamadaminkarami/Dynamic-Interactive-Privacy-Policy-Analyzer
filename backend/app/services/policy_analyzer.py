@@ -41,7 +41,10 @@ class PolicyAnalyzer:
     def __init__(self):
         """Initialize the LLM service"""
         try:
-            self.openai_client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
+            if settings.LITELLM_PROXY_URL:
+                self.openai_client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY, base_url=settings.LITELLM_PROXY_URL)
+            else:
+                self.openai_client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
         except Exception as e:
             raise ValueError(f"Failed to configure OpenAI client: {str(e)}")
 
@@ -840,16 +843,20 @@ class PolicyAnalyzer:
                         if not option_text:  # Skip empty options
                             continue
 
+                        # Convert option_text to string to handle cases where LLM returns integers
+                        option_text = str(option_text).strip()
+                        
                         option_id = f"opt_{question_id}_{j+1}"
                         # For multiple choice, determine if this is correct based on the answer
                         is_correct = False
-                        if correct_answer and isinstance(option_text, str):
+                        if correct_answer:
+                            correct_answer_str = str(correct_answer).strip()
                             # Check if this option matches the correct answer
-                            if option_text.strip() == correct_answer.strip():
+                            if option_text == correct_answer_str:
                                 is_correct = True
                             elif (
-                                correct_answer in option_text
-                                or option_text in correct_answer
+                                correct_answer_str in option_text
+                                or option_text in correct_answer_str
                             ):
                                 is_correct = True
 

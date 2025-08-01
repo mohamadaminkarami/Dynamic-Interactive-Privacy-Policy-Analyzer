@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { InteractiveQuiz, QuizQuestion, QuizOption, QuizResult } from '../../types/policy';
+import React, { useState } from 'react';
+import { InteractiveQuiz, QuizResult } from '../../types/policy';
 import { motion, AnimatePresence, PanInfo } from 'framer-motion';
 
 interface InteractiveQuizProps {
@@ -28,7 +28,6 @@ const InteractiveQuizComponent: React.FC<InteractiveQuizProps> = ({ quiz, onComp
   });
 
   const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
-  const [dragOffset, setDragOffset] = useState(0);
 
   const currentQuestion = quiz.questions[state.currentQuestionIndex];
   const isLastQuestion = state.currentQuestionIndex === quiz.questions.length - 1;
@@ -64,7 +63,6 @@ const InteractiveQuizComponent: React.FC<InteractiveQuizProps> = ({ quiz, onComp
 
   const handleSwipeGesture = (info: PanInfo) => {
     const threshold = 100;
-    const velocity = info.velocity.x;
     
     if (Math.abs(info.offset.x) > threshold) {
       if (info.offset.x > 0 && !isFirstQuestion) {
@@ -237,7 +235,7 @@ const InteractiveQuizComponent: React.FC<InteractiveQuizProps> = ({ quiz, onComp
             dragConstraints={{ left: 0, right: 0 }}
             dragElastic={0.2}
             onDragEnd={(_, info) => handleSwipeGesture(info)}
-            onDrag={(_, info) => setDragOffset(info.offset.x)}
+            onDrag={() => {/* Drag tracking removed */}}
           >
             {/* Question Header */}
             <div className="mb-6">

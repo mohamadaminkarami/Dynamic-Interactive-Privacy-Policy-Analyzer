@@ -1,0 +1,49 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: privacy-policy-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=false
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_MODEL_PRIMARY=${OPENAI_MODEL_PRIMARY:-gpt-4o}
+      - OPENAI_MODEL_SECONDARY=${OPENAI_MODEL_SECONDARY:-gpt-4o-mini}
+      - LITELLM_PROXY_URL=${LITELLM_PROXY_URL:-}
+      - ALLOWED_ORIGINS=http://localhost:3000,http://frontend:3000,http://172.19.0.1:3000,http://172.19.0.2:3000,http://172.19.0.3:3000,http://172.19.0.4:3000
+    volumes:
+      - ./backend/generated_webpages:/app/generated_webpages
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: privacy-policy-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=http://backend:8000
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  default:
+    name: privacy-policy-network 
