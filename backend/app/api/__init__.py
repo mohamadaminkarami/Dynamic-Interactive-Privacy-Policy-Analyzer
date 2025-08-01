@@ -3,7 +3,7 @@ API routes package
 """
 
 from fastapi import APIRouter
-from .routes import policy, webpage
+from .routes import policy
 
 router = APIRouter()
 

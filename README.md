@@ -1,6 +1,6 @@
-# Dynamic Interactive Decentralized Privacy Policy System
+# Dynamic Interactive Privacy Policy Analyzer
 
-A system that transforms legal privacy policy content using LLMs to create dynamically designed, user-friendly interfaces that prioritize user impact over company preferences.
+A full-stack system that transforms legal privacy policy content using LLMs to create dynamically designed, user-friendly interfaces that prioritize user impact over company preferences.
 
 ## 🎯 Project Goals
 
@@ -10,65 +10,134 @@ A system that transforms legal privacy policy content using LLMs to create dynam
 
 ## 🏗️ System Architecture
 
-The system consists of 5 core components:
+The system consists of a modern microservices architecture with two main components:
 
-1. **Content Ingestion API**: Accepts and preprocesses privacy policy content
-2. **LLM Content Processor**: Analyzes content using AI to extract key information
-3. **Importance Ranking Engine**: Prioritizes content based on user impact 
-4. **Dynamic UI Generator**: Creates engaging interfaces automatically
-5. **Component Library**: Reusable UI elements and visual assets
+### Backend (FastAPI)
+- **Content Ingestion API**: Accepts and preprocesses privacy policy content
+- **LLM Content Processor**: Analyzes content using AI to extract key information
+- **Importance Ranking Engine**: Prioritizes content based on user impact 
+- **Dynamic UI Generator**: Creates engaging interfaces automatically
+- **RESTful API**: Provides endpoints for frontend communication
+
+### Frontend (Next.js)
+- **Interactive Policy Viewer**: User-friendly interface for viewing policies
+- **Dynamic Components**: Reusable UI elements and visual assets
+- **Responsive Design**: Modern, accessible interface with smooth animations
+- **Real-time Updates**: Dynamic content rendering based on backend analysis
 
 ## 🚀 Current Status
 
 ✅ **Completed**: 
-- System architecture design
-- LLM integration setup with OpenAI
-- Data models and processing pipeline
+- Full-stack system architecture with FastAPI backend and Next.js frontend
+- Docker containerization with docker-compose orchestration
+- LLM integration setup with OpenAI (GPT-4o and GPT-4o-mini)
+- Data models and processing pipeline with Pydantic validation
 - Content analysis and user impact assessment
+- Interactive UI components with animations and drag-and-drop
+- Health checks and monitoring setup
 
 🔧 **In Progress**:
-- LLM provider integration and testing
+- Advanced content prioritization algorithms
+- Enhanced interactive elements and user engagement features
+
+## 🛠️ Technology Stack
+
+### Backend
+- **Framework**: FastAPI 0.116.1
+- **Runtime**: Python 3.11
+- **AI/LLM**: OpenAI API (GPT-4o, GPT-4o-mini)
+- **Data Validation**: Pydantic 2.11.7
+- **Server**: Uvicorn with async support
+- **Configuration**: Environment-based settings with pydantic-settings
+
+### Frontend
+- **Framework**: Next.js 15.3.5 with App Router
+- **Runtime**: React 19 with TypeScript 5
+- **Styling**: Tailwind CSS 4
+- **Animations**: Framer Motion 12.23.0
+- **Interactions**: DnD Kit for drag-and-drop functionality
+- **Build**: Turbopack for fast development
+
+### DevOps
+- **Containerization**: Docker with multi-stage builds
+- **Orchestration**: Docker Compose with health checks
+- **Networking**: Custom Docker network with service discovery
+- **Development**: Hot reload support for both services
 
 ## 📋 Setup Instructions
 
 ### Prerequisites
-- Python 3.8+
+- Docker (version 20.10 or later)
+- Docker Compose (version 2.0 or later)
 - OpenAI API key
 
-### Installation
+### 🐳 Docker Deployment (Recommended)
 
-1. **Install dependencies**:
+1. **Clone the repository**:
 ```bash
-pip install -r requirements.txt
+git clone <repository-url>
+cd Dynamic-Interactive-Decentralized-Privacy-Policy-System
 ```
 
 2. **Set up environment variables**:
-Create a `.env` file in the project root:
-```
-OPENAI_API_KEY=your_openai_api_key_here
-OPENAI_MODEL_PRIMARY=gpt-4-1106-preview
-OPENAI_MODEL_SECONDARY=gpt-3.5-turbo-1106
+```bash
+# Create .env file in project root
+echo "OPENAI_API_KEY=your_openai_api_key_here" > .env
 ```
 
-3. **Test the integration**:
+3. **Build and start the services**:
 ```bash
-python test_llm_integration.py
+docker-compose up --build
+```
+
+4. **Access the application**:
+- **Frontend**: http://localhost:3000
+- **Backend API**: http://localhost:8000
+- **API Documentation**: http://localhost:8000/docs
+
+### 🔧 Local Development
+
+For development with hot reload:
+
+1. **Install dependencies**:
+```bash
+# Backend dependencies
+pip install -r backend/requirements.txt
+
+# Frontend dependencies
+cd frontend && npm install
+```
+
+2. **Set up environment variables**:
+```bash
+# Create .env file in project root
+OPENAI_API_KEY=your_openai_api_key_here
+OPENAI_MODEL_PRIMARY=gpt-4o
+OPENAI_MODEL_SECONDARY=gpt-4o-mini
+```
+
+3. **Start both services**:
+```bash
+# Using Makefile (recommended)
+make run-all
+
+# Or manually:
+# Backend (Terminal 1)
+cd backend && python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000
+
+# Frontend (Terminal 2)
+cd frontend && npm run dev
 ```
 
 ## 🧪 Testing
 
-The test suite includes:
+### Health Checks
+```bash
+# Backend health
+curl http://localhost:8000/health
 
-- **Basic Functionality**: Service initialization and health checks
-- **Individual Functions**: Structure analysis, entity extraction, user impact analysis
-- **Content Processing**: End-to-end processing of sample privacy policy content
-
-Expected test output:
-```
-✅ LLM Service initialized successfully
-✅ Primary Model: gpt-4-1106-preview
-✅ Secondary Model: gpt-3.5-turbo-1106
-🎯 Overall: 3/3 tests passed
+# Frontend health (via Docker)
+curl http://localhost:3000
 ```
 
 ## 🔍 LLM Processing Strategy
@@ -83,46 +152,91 @@ Expected test output:
 
 ### Key Features:
 
-- **Dual Model Approach**: GPT-4 for complex analysis, GPT-3.5 for routine tasks
+- **Dual Model Approach**: GPT-4o for complex analysis, GPT-4o-mini for routine tasks
 - **Parallel Processing**: Multiple analysis tasks run simultaneously for efficiency
 - **Rate Limiting**: Built-in API rate limiting and cost optimization
 - **Structured Output**: JSON-formatted responses for consistent data processing
 
 ## 📊 Data Models
 
-The system uses structured data models for:
+The system uses structured Pydantic models for:
 
 - **ContentChunk**: Individual sections of privacy policies
 - **ProcessedSection**: Analyzed content with extracted entities and impact assessment
 - **UserImpactAnalysis**: Risk levels, user control, and transparency scores
 - **PrivacyPolicyDocument**: Complete processed document with metadata
 
-## 🔮 Next Steps
+## 📁 Project Structure
 
-1. **API Endpoints**: Design and implement REST API for content processing
-2. **Dynamic UI Engine**: Create component generation system
-3. **Importance Ranking**: Implement user-centric content prioritization
-4. **Frontend Interface**: Build user-facing policy viewer
-5. **Integration Testing**: End-to-end system testing
-
-## 🛠️ Development
-
-### Project Structure
 ```
-├── config.py              # Configuration management
-├── models.py              # Pydantic data models
-├── llm_service.py         # LLM integration service
-├── test_llm_integration.py # Integration tests
-├── requirements.txt       # Python dependencies
-└── README.md             # This file
+Dynamic-Interactive-Decentralized-Privacy-Policy-System/
+├── backend/                     # FastAPI backend service
+│   ├── app/
+│   │   ├── api/                # API routes and endpoints
+│   │   │   ├── routes/         # Route handlers
+│   │   │   └── schemas/        # Request/response schemas
+│   │   ├── core/               # Core configuration
+│   │   ├── models/             # Data models
+│   │   ├── services/           # Business logic and LLM integration
+│   │   └── utils/              # Utility functions
+│   ├── Dockerfile              # Backend container configuration
+│   ├── main.py                 # FastAPI application entry point
+│   └── requirements.txt        # Python dependencies
+├── frontend/                   # Next.js frontend application
+│   ├── src/
+│   │   ├── app/               # Next.js App Router pages
+│   │   ├── components/        # React components
+│   │   │   ├── policy/        # Policy-specific components
+│   │   │   └── ui/            # Reusable UI components
+│   │   ├── lib/               # Frontend utilities and API client
+│   │   └── types/             # TypeScript type definitions
+│   ├── Dockerfile             # Frontend container configuration
+│   └── package.json           # Node.js dependencies and scripts
+├── docker-compose.yml         # Multi-service orchestration
+├── Makefile                   # Development workflow commands
+└── README.Docker.md           # Docker-specific documentation
 ```
 
-### Key Technologies
-- **Backend**: Python, FastAPI, Pydantic
-- **LLM**: OpenAI GPT-4 and GPT-3.5
-- **Processing**: Async/await for parallel processing
-- **Data**: Structured JSON with validation
+## 🔧 Available Commands
+
+### Docker Commands
+```bash
+# Start all services
+docker-compose up --build
+
+# Start in detached mode
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop services
+docker-compose down
+```
+
+### Development Commands (via Makefile)
+```bash
+make install-all      # Install all dependencies
+make run-all          # Run both backend and frontend
+make run-server       # Run backend only
+make run-client       # Run frontend only
+make test-backend     # Run backend tests
+make health-check     # Check service health
+make clean           # Stop all processes
+```
+
+## 🚨 Environment Variables
+
+### Required
+- `OPENAI_API_KEY`: Your OpenAI API key
+
+### Optional
+- `OPENAI_MODEL_PRIMARY`: Primary model (default: gpt-4o)
+- `OPENAI_MODEL_SECONDARY`: Secondary model (default: gpt-4o-mini)
+- `LITELLM_PROXY_URL`: LiteLLM proxy URL if using one
+- `DEBUG`: Enable debug mode (default: true in development)
+
 
 ---
 
-*This project is in active development. The LLM integration is complete and ready for testing.* 
+*This project uses modern containerization with Docker for easy deployment and development. The system is designed for scalability and maintainability with a clean separation between frontend and backend services.* 
