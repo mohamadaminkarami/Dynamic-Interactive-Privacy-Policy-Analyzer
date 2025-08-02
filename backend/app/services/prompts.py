@@ -215,12 +215,11 @@ REQUIREMENTS:
 QUESTION TYPES:
 - Multiple choice (primary)
 - True/false (for clear-cut facts)
-- Fill-in-the-blank (for key terms)
 
 DIFFICULTY LEVELS:
 - Easy: Basic understanding of key concepts
 - Medium: Implications and consequences
 - Hard: Nuanced understanding and decision-making
 
-Response format: JSON with quiz structure
+Response format: Just the JSON with quiz structure. Do not include any other text or formatting.
 """

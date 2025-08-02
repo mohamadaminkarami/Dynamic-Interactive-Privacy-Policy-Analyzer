@@ -591,14 +591,7 @@ const QuizResults: React.FC<QuizResultsProps> = ({ quiz, answers, score, onResta
               ✖️ Close Quiz
             </motion.button>
           )}
-          <motion.button
-            onClick={() => window.print()}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium"
-          >
-            🖨️ Print Results
-          </motion.button>
+          {/* Print Results button removed */}
         </div>
       </div>
     </motion.div>

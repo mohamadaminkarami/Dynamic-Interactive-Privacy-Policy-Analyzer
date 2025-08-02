@@ -923,6 +923,7 @@ class PolicyAnalyzer:
 
         except json.JSONDecodeError as e:
             print(f"⚠️ JSON parsing error for section '{section_title}': {e}")
+            print(f"⚠️ Response content: {content_response}")
             return None
         except Exception as e:
             print(f"⚠️ Error generating quiz for section '{section_title}': {e}")
